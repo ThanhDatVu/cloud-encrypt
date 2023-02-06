@@ -1,6 +1,11 @@
 # development stage
 FROM node:14-alpine as base
 
+# add OpenSSL
+RUN apk upgrade --update-cache --available && \
+    apk add openssl && \
+    rm -rf /var/cache/apk/*
+
 WORKDIR /usr/src/app
 
 COPY package.json yarn.lock tsconfig.json ecosystem.config.json ./
