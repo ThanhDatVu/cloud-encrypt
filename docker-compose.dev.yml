@@ -7,6 +7,8 @@ services:
   
   app:
     container_name: ts-node-app-dev
+    volumes:
+      - ./src:/usr/src/app/src
     command: yarn dev -L
 
 volumes:
