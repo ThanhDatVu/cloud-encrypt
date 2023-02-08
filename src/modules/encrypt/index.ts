@@ -1,7 +1,7 @@
-import * as userController from './encrypt.controller';
-import * as userInterfaces from './encrypt.interfaces';
-import User from './encrypt.model';
-import * as userService from './encrypt.service';
-import * as userValidation from './encrypt.validation';
+import * as encryptController from './encrypt.controller';
+import * as encryptInterfaces from './encrypt.interfaces';
+import Encrypt from './encrypt.model';
+import * as encryptService from './encrypt.service';
+import * as encryptValidation from './encrypt.validation';
 
-export { userController, userInterfaces, User, userService, userValidation };
+export { encryptController, encryptInterfaces, Encrypt, encryptService, encryptValidation };

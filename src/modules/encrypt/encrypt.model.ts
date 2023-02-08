@@ -6,7 +6,7 @@ import paginate from '../paginate/paginate';
 import { roles } from '../../config/roles';
 import { IEncryptDoc, IEncryptModel } from './encrypt.interfaces';
 
-const userSchema = new mongoose.Schema<IEncryptDoc, IEncryptModel>(
+const encryptSchema = new mongoose.Schema<IEncryptDoc, IEncryptModel>(
   {
     name: {
       type: String,
@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema<IEncryptDoc, IEncryptModel>(
     role: {
       type: String,
       enum: roles,
-      default: 'user',
+      default: 'encrypt',
     },
     isEmailVerified: {
       type: Boolean,
@@ -53,38 +53,38 @@ const userSchema = new mongoose.Schema<IEncryptDoc, IEncryptModel>(
 );
 
 // add plugin that converts mongoose to json
-userSchema.plugin(toJSON);
-userSchema.plugin(paginate);
+encryptSchema.plugin(toJSON);
+encryptSchema.plugin(paginate);
 
 /**
  * Check if email is taken
- * @param {string} email - The user's email
- * @param {ObjectId} [excludeEncryptId] - The id of the user to be excluded
+ * @param {string} email - The encrypt's email
+ * @param {ObjectId} [excludeEncryptId] - The id of the encrypt to be excluded
  * @returns {Promise<boolean>}
  */
-userSchema.static('isEmailTaken', async function (email: string, excludeEncryptId: mongoose.ObjectId): Promise<boolean> {
-  const user = await this.findOne({ email, _id: { $ne: excludeEncryptId } });
-  return !!user;
+encryptSchema.static('isEmailTaken', async function (email: string, excludeEncryptId: mongoose.ObjectId): Promise<boolean> {
+  const encrypt = await this.findOne({ email, _id: { $ne: excludeEncryptId } });
+  return !!encrypt;
 });
 
 /**
- * Check if password matches the user's password
+ * Check if password matches the encrypt's password
  * @param {string} password
  * @returns {Promise<boolean>}
  */
-userSchema.method('isPasswordMatch', async function (password: string): Promise<boolean> {
-  const user = this;
-  return bcrypt.compare(password, user.password);
+encryptSchema.method('isPasswordMatch', async function (password: string): Promise<boolean> {
+  const encrypt = this;
+  return bcrypt.compare(password, encrypt.password);
 });
 
-userSchema.pre('save', async function (next) {
-  const user = this;
-  if (user.isModified('password')) {
-    user.password = await bcrypt.hash(user.password, 8);
+encryptSchema.pre('save', async function (next) {
+  const encrypt = this;
+  if (encrypt.isModified('password')) {
+    encrypt.password = await bcrypt.hash(encrypt.password, 8);
   }
   next();
 });
 
-const Encrypt = mongoose.model<IEncryptDoc, IEncryptModel>('Encrypt', userSchema);
+const Encrypt = mongoose.model<IEncryptDoc, IEncryptModel>('Encrypt', encryptSchema);
 
 export default Encrypt;

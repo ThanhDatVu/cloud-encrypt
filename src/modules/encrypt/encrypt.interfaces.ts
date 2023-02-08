@@ -26,6 +26,6 @@ export type NewRegisteredEncrypt = Omit<IEncrypt, 'role' | 'isEmailVerified'>;
 export type NewCreatedEncrypt = Omit<IEncrypt, 'isEmailVerified'>;
 
 export interface IEncryptWithTokens {
-  user: IEncryptDoc;
+  encrypt: IEncryptDoc;
   tokens: AccessAndRefreshTokens;
 }

@@ -6,86 +6,86 @@ import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedEncrypt, UpdateEncryptBody, IEncryptDoc, NewRegisteredEncrypt } from './encrypt.interfaces';
 
 /**
- * Create a user
- * @param {NewCreatedEncrypt} userBody
+ * Create a encrypt
+ * @param {NewCreatedEncrypt} encryptBody
  * @returns {Promise<IEncryptDoc>}
  */
-export const createEncrypt = async (userBody: NewCreatedEncrypt): Promise<IEncryptDoc> => {
-  if (await Encrypt.isEmailTaken(userBody.email)) {
+export const createEncrypt = async (encryptBody: NewCreatedEncrypt): Promise<IEncryptDoc> => {
+  if (await Encrypt.isEmailTaken(encryptBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  return Encrypt.create(userBody);
+  return Encrypt.create(encryptBody);
 };
 
 /**
- * Register a user
- * @param {NewRegisteredEncrypt} userBody
+ * Register a encrypt
+ * @param {NewRegisteredEncrypt} encryptBody
  * @returns {Promise<IEncryptDoc>}
  */
-export const registerEncrypt = async (userBody: NewRegisteredEncrypt): Promise<IEncryptDoc> => {
-  if (await Encrypt.isEmailTaken(userBody.email)) {
+export const registerEncrypt = async (encryptBody: NewRegisteredEncrypt): Promise<IEncryptDoc> => {
+  if (await Encrypt.isEmailTaken(encryptBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  return Encrypt.create(userBody);
+  return Encrypt.create(encryptBody);
 };
 
 /**
- * Query for users
+ * Query for encrypts
  * @param {Object} filter - Mongo filter
  * @param {Object} options - Query options
  * @returns {Promise<QueryResult>}
  */
 export const queryEncrypts = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
-  const users = await Encrypt.paginate(filter, options);
-  return users;
+  const encrypts = await Encrypt.paginate(filter, options);
+  return encrypts;
 };
 
 /**
- * Get user by id
+ * Get encrypt by id
  * @param {mongoose.Types.ObjectId} id
  * @returns {Promise<IEncryptDoc | null>}
  */
 export const getEncryptById = async (id: mongoose.Types.ObjectId): Promise<IEncryptDoc | null> => Encrypt.findById(id);
 
 /**
- * Get user by email
+ * Get encrypt by email
  * @param {string} email
  * @returns {Promise<IEncryptDoc | null>}
  */
 export const getEncryptByEmail = async (email: string): Promise<IEncryptDoc | null> => Encrypt.findOne({ email });
 
 /**
- * Update user by id
- * @param {mongoose.Types.ObjectId} userId
+ * Update encrypt by id
+ * @param {mongoose.Types.ObjectId} encryptId
  * @param {UpdateEncryptBody} updateBody
  * @returns {Promise<IEncryptDoc | null>}
  */
 export const updateEncryptById = async (
-  userId: mongoose.Types.ObjectId,
+  encryptId: mongoose.Types.ObjectId,
   updateBody: UpdateEncryptBody
 ): Promise<IEncryptDoc | null> => {
-  const user = await getEncryptById(userId);
-  if (!user) {
+  const encrypt = await getEncryptById(encryptId);
+  if (!encrypt) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Encrypt not found');
   }
-  if (updateBody.email && (await Encrypt.isEmailTaken(updateBody.email, userId))) {
+  if (updateBody.email && (await Encrypt.isEmailTaken(updateBody.email, encryptId))) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  Object.assign(user, updateBody);
-  await user.save();
-  return user;
+  Object.assign(encrypt, updateBody);
+  await encrypt.save();
+  return encrypt;
 };
 
 /**
- * Delete user by id
- * @param {mongoose.Types.ObjectId} userId
+ * Delete encrypt by id
+ * @param {mongoose.Types.ObjectId} encryptId
  * @returns {Promise<IEncryptDoc | null>}
  */
-export const deleteEncryptById = async (userId: mongoose.Types.ObjectId): Promise<IEncryptDoc | null> => {
-  const user = await getEncryptById(userId);
-  if (!user) {
+export const deleteEncryptById = async (encryptId: mongoose.Types.ObjectId): Promise<IEncryptDoc | null> => {
+  const encrypt = await getEncryptById(encryptId);
+  if (!encrypt) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Encrypt not found');
   }
-  await user.remove();
-  return user;
+  await encrypt.remove();
+  return encrypt;
 };
