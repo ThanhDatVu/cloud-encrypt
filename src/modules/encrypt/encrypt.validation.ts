@@ -6,7 +6,7 @@ const createEncryptBody: Record<keyof NewCreatedEncrypt, any> = {
   email: Joi.string().required().email(),
   password: Joi.string().required().custom(password),
   name: Joi.string().required(),
-  role: Joi.string().required().valid('user', 'admin'),
+  role: Joi.string().required().valid('encrypt', 'admin'),
 };
 
 export const createEncrypt = {
@@ -26,13 +26,13 @@ export const getEncrypts = {
 
 export const getEncrypt = {
   params: Joi.object().keys({
-    userId: Joi.string().custom(objectId),
+    encryptId: Joi.string().custom(objectId),
   }),
 };
 
 export const updateEncrypt = {
   params: Joi.object().keys({
-    userId: Joi.required().custom(objectId),
+    encryptId: Joi.required().custom(objectId),
   }),
   body: Joi.object()
     .keys({
@@ -45,6 +45,6 @@ export const updateEncrypt = {
 
 export const deleteEncrypt = {
   params: Joi.object().keys({
-    userId: Joi.string().custom(objectId),
+    encryptId: Joi.string().custom(objectId),
   }),
 };
