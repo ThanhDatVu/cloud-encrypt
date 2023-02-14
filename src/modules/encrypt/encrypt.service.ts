@@ -4,6 +4,9 @@ import Encrypt from './encrypt.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedEncrypt, UpdateEncryptBody, IEncryptDoc, NewRegisteredEncrypt } from './encrypt.interfaces';
+// @ts-ignore
+import openssl from 'openssl-nodejs';
+import { exec } from 'child_process';
 
 /**
  * Create a encrypt
@@ -89,3 +92,29 @@ export const deleteEncryptById = async (encryptId: mongoose.Types.ObjectId): Pro
   await encrypt.remove();
   return encrypt;
 };
+
+/**
+ * Generate a new Blowfish key
+ * @returns {Promise<string>}
+ */
+export const generateBlowfishKey = async (): Promise<string> => {
+  const KEY_LENGTH = 128; // TODO: move to config 
+  let key = '';
+  exec(`openssl rand -base64 ${KEY_LENGTH}`, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      key = stderr;
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+  return key;
+
+  // return key;
+}
+
+
