@@ -7,14 +7,45 @@ const router: Router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageEncrypts'), validate(encryptValidation.createEncrypt), encryptController.createEncrypt)
-  .get(validate(encryptValidation.getEncrypts), encryptController.getEncrypts);
+  .post(
+    // auth('manageEncrypts'), 
+    // validate(encryptValidation.createEncrypt), 
+    encryptController.encryptBlowfish)
+  .get(validate(encryptValidation.getEncrypts), encryptController.getEncrypts
+  );
+
+router
+  .route('/blowfish')
+  .post(
+    // auth('manageEncrypts'),
+    // validate(encryptValidation.encryptBlowfish),
+    encryptController.encryptBlowfish
+  );
+
+  router
+  .route('/decryptBlowfish')
+  .post(
+    // auth('manageEncrypts'),
+    // validate(encryptValidation.encryptBlowfish),
+    encryptController.decryptBlowfish
+  );
 
 router
   .route('/:encryptId')
-  .get(auth('getEncrypts'), validate(encryptValidation.getEncrypt), encryptController.getEncrypt)
-  .patch(auth('manageEncrypts'), validate(encryptValidation.updateEncrypt), encryptController.updateEncrypt)
-  .delete(auth('manageEncrypts'), validate(encryptValidation.deleteEncrypt), encryptController.deleteEncrypt);
+  .get(
+    auth('getEncrypts'), 
+    validate(encryptValidation.getEncrypt), 
+    encryptController.getEncrypt)
+  .patch(
+    // auth('manageEncrypts'), 
+    validate(encryptValidation.updateEncrypt), encryptController.updateEncrypt
+  )
+  .delete(
+    // auth('manageEncrypts'), 
+    validate(encryptValidation.deleteEncrypt), 
+    encryptController.deleteEncrypt
+  );
+
 
 export default router;
 
