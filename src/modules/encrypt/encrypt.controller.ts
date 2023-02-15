@@ -45,3 +45,15 @@ export const deleteEncrypt = catchAsync(async (req: Request, res: Response) => {
     res.status(httpStatus.NO_CONTENT).send();
   }
 });
+
+export const encryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+  req = req;
+  const result = await encryptService.encryptBlowfish("key", "input.png", "output.png" );
+  res.send(result);
+});
+
+export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+  req = req;
+  const result = await encryptService.decryptBlowfish("key", "output.png", "output2.png" );
+  res.send(result);
+});

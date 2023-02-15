@@ -113,8 +113,66 @@ export const generateBlowfishKey = async (): Promise<string> => {
     console.log(`stdout: ${stdout}`);
   });
   return key;
-
-  // return key;
 }
+/**
+ * Use Blowfish encryption to encrypt a file
+ * @params {string} key
+ * @params {string} inputFile
+ * @params {string} outputFile
+ * @returns {Promise<string>}
+ */
+export const encryptBlowfish = async (key: string, inputFile: string, outputFile: string): Promise<string> => {
+  let result = '';
+  exec('pwd', (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      result = stderr;
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  })
+  exec(`openssl enc -bf -in ${inputFile} -out ${outputFile} -pass pass:${key}`, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      result = stderr;
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+  return result;
+}
+
+/**
+ * Use Blowfish encryption to decrypt a file
+ * @params {string} key
+ * @params {string} inputFile
+ * @params {string} outputFile
+ * @returns {Promise<string>}
+ * 
+  */
+  export const decryptBlowfish = async (key: string, inputFile: string, outputFile: string): Promise<string> => {
+    let result = '';
+    exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -pass pass:${key}`, (error, stdout, stderr) => {
+      if (error) {
+        console.log(`error: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.log(`stderr: ${stderr}`);
+        result = stderr;
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+    });
+    return result;
+  }
 
 
