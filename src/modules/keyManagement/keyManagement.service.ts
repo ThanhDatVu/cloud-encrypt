@@ -97,7 +97,8 @@ export const deleteKeyManagementById = async (keyManagementId: mongoose.Types.Ob
  */
 export const generateBlowfishKey = async (): Promise<string> => {
   let result = '';
-  exec('openssl rand -base64 32 > blowfish.key', (error, stdout, stderr) => {
+  const symKeyFolder = process.env['SYM_KEY_FOLDER']; 
+  exec(`openssl rand -base64 32 > ${symKeyFolder}blowfish.key`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
@@ -119,7 +120,8 @@ export const generateBlowfishKey = async (): Promise<string> => {
  */
 export const generateECDSAKeyPair = async (): Promise<string> => {
   let result = '';
-  exec('openssl ecparam -genkey -name secp256k1 -out private.pem', (error, stdout, stderr) => {
+  const asymKeyFolder = process.env['ASYM_KEY_FOLDER']; 
+  exec(`openssl ecparam -genkey -name secp256k1 -out ${asymKeyFolder}private.pem`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
@@ -131,7 +133,7 @@ export const generateECDSAKeyPair = async (): Promise<string> => {
     }
     console.log(`stdout: ${stdout}`);
   });
-  exec('openssl ec -in private.pem -pubout -out public.pem', (error, stdout, stderr) => {
+  exec(`openssl ec -in ${asymKeyFolder}private.pem -pubout -out ${asymKeyFolder}public.pem`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
