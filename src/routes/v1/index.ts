@@ -3,6 +3,7 @@ import authRoute from './auth.route';
 import docsRoute from './swagger.route';
 import userRoute from './user.route';
 import encryptRoute from './encrypt.route';
+import keyManagementRoute from './keyManagement.route';
 import config from '../../config/config';
 
 const router = express.Router();
@@ -24,6 +25,10 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/encrypts',
     route: encryptRoute,
+  },
+  {
+    path: '/kms',
+    route: keyManagementRoute,
   }
 ];
 
