@@ -22,7 +22,7 @@ services:
     ports:
       - ${PORT}:${PORT}
     environment: 
-      - MONGODB_URL=mongodb://mongo:27017/node-boilerplate
+      - MONGODB_URL=mongodb://mongo:27017/cloud-encrypt
       - CLIENT_URL=${CLIENT_URL}
     links: 
       - mongo  
