@@ -47,13 +47,27 @@ export const deleteEncrypt = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const encryptBlowfish = catchAsync(async (req: Request, res: Response) => {
-  req = req;
-  const result = await encryptService.encryptBlowfish("key", "input.png", "output.png" );
+  const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
+  const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
+  const symKeyFile = 'blowfish.key';
+
+  const result = await encryptService.encryptBlowfish(
+    `${symKeyFolder}${symKeyFile}`,
+    `${imagesFolder}input.png`,
+    `${imagesFolder}encrypted.png`
+  );
   res.send(result);
 });
 
 export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
-  req = req;
-  const result = await encryptService.decryptBlowfish("key", "output.png", "output2.png" );
+  const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
+  const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
+  const symKeyFile = 'blowfish.key';
+
+  const result = await encryptService.decryptBlowfish(
+    `${symKeyFolder}${symKeyFile}`,
+    `${imagesFolder}encrypted.png`,
+    `${imagesFolder}decrypted.png`
+  );
   res.send(result);
 });
