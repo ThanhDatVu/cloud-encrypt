@@ -115,15 +115,15 @@ export const generateBlowfishKey = async (): Promise<string> => {
   return key;
 }
 /**
- * Use Blowfish encryption to encrypt a file
- * @params {string} key
+ * Use Blowfish encryption to encrypt a file with key from a file
+ * @params {string} keyFile
  * @params {string} inputFile
  * @params {string} outputFile
  * @returns {Promise<string>}
  */
-export const encryptBlowfish = async (key: string, inputFile: string, outputFile: string): Promise<string> => {
+export const encryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
-  exec('pwd', (error, stdout, stderr) => {
+  exec(`cat ${keyFile}`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
@@ -134,8 +134,9 @@ export const encryptBlowfish = async (key: string, inputFile: string, outputFile
       return;
     }
     console.log(`stdout: ${stdout}`);
-  })
-  exec(`openssl enc -bf -in ${inputFile} -out ${outputFile} -pass pass:${key}`, (error, stdout, stderr) => {
+  });
+  
+  exec(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
@@ -152,15 +153,17 @@ export const encryptBlowfish = async (key: string, inputFile: string, outputFile
 
 /**
  * Use Blowfish encryption to decrypt a file
- * @params {string} key
- * @params {string} inputFile
- * @params {string} outputFile
+ * @params {string} keyFile: key file of the encrypted file
+ * @params {string} inputFile: file to be decrypted
+ * @params {string} outputFile: file to be saved
  * @returns {Promise<string>}
  * 
   */
-  export const decryptBlowfish = async (key: string, inputFile: string, outputFile: string): Promise<string> => {
+  export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
     let result = '';
-    exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -pass pass:${key}`, (error, stdout, stderr) => {
+    // keyFile = 'private.pem';
+    console.log(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`)
+    exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
       if (error) {
         console.log(`error: ${error.message}`);
         return;
