@@ -5,8 +5,8 @@ import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedEncrypt, UpdateEncryptBody, IEncryptDoc, NewRegisteredEncrypt } from './encrypt.interfaces';
 // @ts-ignore
-import openssl from 'openssl-nodejs';
-import { exec } from 'child_process';
+// import openssl from 'openssl-nodejs';
+import { exec, execSync } from 'child_process';
 
 /**
  * Create a encrypt
@@ -98,7 +98,7 @@ export const deleteEncryptById = async (encryptId: mongoose.Types.ObjectId): Pro
  * @returns {Promise<string>}
  */
 export const generateBlowfishKey = async (): Promise<string> => {
-  const KEY_LENGTH = 128; // TODO: move to config 
+  const KEY_LENGTH = 128; // TODO: move to config
   let key = '';
   exec(`openssl rand -base64 ${KEY_LENGTH}`, (error, stdout, stderr) => {
     if (error) {
@@ -113,7 +113,7 @@ export const generateBlowfishKey = async (): Promise<string> => {
     console.log(`stdout: ${stdout}`);
   });
   return key;
-}
+};
 /**
  * Use Blowfish encryption to encrypt a file with key from a file
  * @params {string} keyFile
@@ -135,7 +135,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
     }
     console.log(`stdout: ${stdout}`);
   });
-  
+
   exec(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
@@ -149,7 +149,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
     console.log(`stdout: ${stdout}`);
   });
   return result;
-}
+};
 
 /**
  * Use Blowfish encryption to decrypt a file
@@ -157,25 +157,41 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
  * @params {string} inputFile: file to be decrypted
  * @params {string} outputFile: file to be saved
  * @returns {Promise<string>}
- * 
-  */
-  export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
-    let result = '';
-    // keyFile = 'private.pem';
-    console.log(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`)
-    exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
-      if (error) {
-        console.log(`error: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.log(`stderr: ${stderr}`);
-        result = stderr;
-        return;
-      }
-      console.log(`stdout: ${stdout}`);
-    });
-    return result;
-  }
+ */
+export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
+  let result = '';
+  // keyFile = 'private.pem';
+  console.log(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`);
+  exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      result = stderr;
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+  return result;
+};
 
+/**
+ * Use openSSL MD5 to calculate the hash of a file
+ * @params {string} inputFile: file to be hashed
+ * @returns {Promise<string>}
+ */
+export const hashMD5 = async (inputFile: string): Promise<string> => {
+  let result = '';
+
+  // openssl(['openssl', 'dgst', '-md5', `${inputFile}`], function (err: any, buffer: any) {
+  //   console.log(err.toString(), buffer.toString());
+  //   result = buffer.toString();
+  // });
+  const hash = execSync(`openssl dgst -md5 ${inputFile}`)
+  //@ts-ignore
+  result = hash.toString().split('=')[1].trim();
+  return result;
+};
 
