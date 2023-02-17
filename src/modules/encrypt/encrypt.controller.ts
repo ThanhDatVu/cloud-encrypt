@@ -56,7 +56,8 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     `${imagesFolder}input.png`,
     `${imagesFolder}encrypted.png`
   );
-  res.send(result);
+  const md5 = await encryptService.hashMD5(`${imagesFolder}input.png`);
+  res.send({ result, md5 });
 });
 
 export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
