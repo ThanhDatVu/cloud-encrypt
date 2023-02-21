@@ -6,6 +6,7 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as encryptService from './encrypt.service';
+import * as metadataService from '../metadata/metadata.service';
 
 export const createEncrypt = catchAsync(async (req: Request, res: Response) => {
   const encrypt = await encryptService.createEncrypt(req.body);
@@ -48,6 +49,7 @@ export const deleteEncrypt = catchAsync(async (req: Request, res: Response) => {
 
 export const encryptBlowfish = catchAsync(async (req: Request, res: Response) => {
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
+  const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
   const symKeyFile = 'blowfish.key';
 
@@ -57,11 +59,15 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     `${imagesFolder}encrypted.png`
   );
   const md5 = await encryptService.hashMD5(`${imagesFolder}input.png`);
-  res.send({ result, md5 });
+  const md5Signature = await encryptService.signECDSA(md5 ,`${asymKeyFolder}private.pem`);
+  // const metadata = await metadataService.insertMetadata(`${imagesFolder}encrypted.png`, md5, md5Signature);
+  res.send({ result, md5, md5Signature });
 });
 
 export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
+  const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
+
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
   const symKeyFile = 'blowfish.key';
 
@@ -70,5 +76,8 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     `${imagesFolder}encrypted.png`,
     `${imagesFolder}decrypted.png`
   );
-  res.send(result);
+  const md5 = await encryptService.hashMD5(`${imagesFolder}decrypted.png`);
+  console.log(md5);
+  const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.txt`, `${asymKeyFolder}public.pem`);
+  res.send({ result, md5, verifyECDSA });
 });
