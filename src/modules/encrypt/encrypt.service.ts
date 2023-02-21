@@ -115,7 +115,7 @@ export const generateBlowfishKey = async (): Promise<string> => {
   return key;
 };
 /**
- * Use Blowfish encryption to encrypt a file with key from a file
+ * Use Blowfish encryption to encrypt a file with key from a file in openssl 3.0.0
  * @params {string} keyFile
  * @params {string} inputFile
  * @params {string} outputFile
@@ -136,7 +136,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
     console.log(`stdout: ${stdout}`);
   });
 
-  exec(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
+  exec(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default` , (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
@@ -152,7 +152,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
 };
 
 /**
- * Use Blowfish encryption to decrypt a file
+ * Use Blowfish encryption to decrypt a file in openssl 3.0.0
  * @params {string} keyFile: key file of the encrypted file
  * @params {string} inputFile: file to be decrypted
  * @params {string} outputFile: file to be saved
@@ -161,8 +161,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
 export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
   // keyFile = 'private.pem';
-  console.log(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`);
-  exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile})`, (error, stdout, stderr) => {
+  exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
