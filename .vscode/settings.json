@@ -2,6 +2,7 @@
   "conventionalCommits.scopes": [
     "encrypt",
     "kms",
-    "metadata"
+    "metadata",
+    "signature"
   ]
 }

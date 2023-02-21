@@ -194,3 +194,70 @@ export const hashMD5 = async (inputFile: string): Promise<string> => {
   return result;
 };
 
+/**
+ * Use openSSL ecdsa to sign a file
+ * @params {string} string to be signed
+ * @params {string} keyFile: key file of the private key
+ * @returns {Promise<string>} signature
+ */
+export const signECDSA = async (string: string, keyFile: string): Promise<string> => {
+  const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
+  console.log(`echo ${string} | openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`)
+  let result = 
+  execSync(`echo ${string} |
+    openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`,
+  //    (error, stdout, stderr) => {
+  //   if (error) {
+  //     console.log(`error: ${error.message}`);
+  //     return;
+  //   }
+  //   if (stderr) {
+  //     console.log(`stderr: ${stderr}`);
+  //     result = stderr;
+  //     return;
+  //   }
+  //   console.log(`stdout signature: ${stdout}`);
+  // }
+  );
+  return result.toString();
+}
+
+/**
+ * Use openSSL ecdsa to verify a signature
+ * @params {string} string to be verified
+ * @params {string} signatureFile: signature to be verified
+ * @params {string} keyFile: key file of the public key
+ * @returns {Promise<string>} signature
+ * @returns {Promise<boolean>} true if verified, false otherwise
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const verifyECDSA = async (string: string, signatureFile: string, publicKeyFile: string): Promise<[string, string, string]> => {
+  let result = '';
+  let verified: Buffer;
+  console.log(`echo ${string} | openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFile}`);
+  verified = execSync(`echo ${string} |
+    openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFile}`
+    // , (error, stdout, stderr) => {
+    // if (error) {
+    //   console.log(`error: ${error.message}`);
+    //   result = error.message;
+    //   return;
+    // }
+    // if (stderr) {
+    //   console.log(`stderr: ${stderr}`);        
+    //   result = stderr;
+    //   return;
+    // }
+    // console.log(`stdout verify: ${stdout}`);
+    // verified = true;
+    // result = stdout;
+  // }
+  );
+  const verifyCheck = verified.toString();
+  //@ts-ignore
+  return [verifyCheck, result, ''];
+}
+
+
+

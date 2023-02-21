@@ -21,6 +21,8 @@ COPY ./keys ./keys
 
 COPY ./images ./images
 
+COPY ./signatures ./signatures
+
 RUN yarn compile
 
 # production stage
