@@ -9,6 +9,8 @@ services:
     container_name: ts-node-app-dev
     volumes:
       - ./src:/usr/src/app/src
+      - ./images:/usr/src/app/images
+      - ./keys:/usr/src/app/keys
     command: yarn dev -L
 
 volumes:

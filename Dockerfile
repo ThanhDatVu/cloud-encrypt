@@ -17,6 +17,10 @@ RUN yarn install --pure-lockfile
 
 COPY ./src ./src
 
+COPY ./keys ./keys
+
+COPY ./images ./images
+
 RUN yarn compile
 
 # production stage
