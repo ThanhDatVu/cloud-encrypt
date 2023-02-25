@@ -11,6 +11,7 @@ services:
       - ./src:/usr/src/app/src
       - ./images:/usr/src/app/images
       - ./keys:/usr/src/app/keys
+      - .env:/usr/src/app/.env
     command: yarn dev -L
 
 volumes:

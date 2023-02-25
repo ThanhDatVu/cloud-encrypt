@@ -78,6 +78,6 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   );
   const md5 = await encryptService.hashMD5(`${imagesFolder}decrypted.png`);
   console.log(md5);
-  const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.txt`, `${asymKeyFolder}public.pem`);
+  const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.bin`, `${asymKeyFolder}public.pem`);
   res.send({ result, md5, verifyECDSA });
 });
