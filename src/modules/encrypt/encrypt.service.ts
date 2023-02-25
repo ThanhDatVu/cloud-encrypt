@@ -136,18 +136,30 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
     console.log(`stdout: ${stdout}`);
   });
 
-  exec(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default` , (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      result = stderr;
-      return;
-    }
-    console.log(`stdout: ${stdout}`);
-  });
+  // exec(
+  //   `openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`,
+  //   (error, stdout, stderr) => {
+  //     if (error) {
+  //       console.log(`error: ${error.message}`);
+  //       return;
+  //     }
+  //     if (stderr) {
+  //       console.log(`stderr: ${stderr}`);
+  //       result = stderr;
+  //       return;
+  //     }
+  //     console.log(`stdout: ${stdout}`);
+  //   }
+  // );
+  await execPromise(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
+    .then((res) => {
+      console.log("encryptBlowfish:Done");
+      console.log("res",res);
+    })
+    .catch((err) => {
+      console.log("encryptBlowfish:Failed");
+      console.log(err);
+    });
   return result;
 };
 
@@ -161,18 +173,30 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
 export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
   // keyFile = 'private.pem';
-  exec(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`, (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      result = stderr;
-      return;
-    }
-    console.log(`stdout: ${stdout}`);
-  });
+  // exec(
+  //   `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`,
+  //   (error, stdout, stderr) => {
+  //     if (error) {
+  //       console.log(`error: ${error.message}`);
+  //       return;
+  //     }
+  //     if (stderr) {
+  //       console.log(`stderr: ${stderr}`);
+  //       result = stderr;
+  //       return;
+  //     }
+  //     console.log(`stdout: ${stdout}`);
+  //   }
+  // );
+  await execPromise(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
+    .then((res) => {
+      console.log("decryptBlowfish:Done");
+      console.log("res",res);
+    })
+    .catch((err) => {
+      console.log("decryptBlowfish:Failed");
+      console.log(err);
+    });
   return result;
 };
 
@@ -182,16 +206,22 @@ export const decryptBlowfish = async (keyFile: string, inputFile: string, output
  * @returns {Promise<string>}
  */
 export const hashMD5 = async (inputFile: string): Promise<string> => {
-  let result = '';
+  try {
+    let result = '';
 
-  // openssl(['openssl', 'dgst', '-md5', `${inputFile}`], function (err: any, buffer: any) {
-  //   console.log(err.toString(), buffer.toString());
-  //   result = buffer.toString();
-  // });
-  const hash = execSync(`openssl dgst -md5 ${inputFile}`)
-  //@ts-ignore
-  result = hash.toString().split('=')[1].trim();
-  return result;
+    // openssl(['openssl', 'dgst', '-md5', `${inputFile}`], function (err: any, buffer: any) {
+    //   console.log(err.toString(), buffer.toString());
+    //   result = buffer.toString();
+    // });
+    console.log(`openssl dgst -md5 ${inputFile}`);
+    const hash = execSync(`openssl dgst -md5 ${inputFile}`);
+    //@ts-ignore
+    result = hash.toString().split('=')[1].trim();
+    return result;
+  } catch (error) {
+    console.log(error);
+    return '';
+  }
 };
 
 /**
@@ -202,10 +232,11 @@ export const hashMD5 = async (inputFile: string): Promise<string> => {
  */
 export const signECDSA = async (string: string, keyFile: string): Promise<string> => {
   const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
-  console.log(`echo ${string} | openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`)
-  let result = 
-  execSync(`echo ${string} |
-    openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`,
+  console.log(
+    `echo ${string} | openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`
+  );
+  let result = execSync(`echo ${string} |
+    openssl dgst -sha256 -sign ${keyFile} -out ${signatureFolder}signature.bin -provider legacy -provider default`);
   //    (error, stdout, stderr) => {
   //   if (error) {
   //     console.log(`error: ${error.message}`);
@@ -218,9 +249,8 @@ export const signECDSA = async (string: string, keyFile: string): Promise<string
   //   }
   //   console.log(`stdout signature: ${stdout}`);
   // }
-  );
   return result.toString();
-}
+};
 
 /**
  * Use openSSL ecdsa to verify a signature
@@ -232,32 +262,63 @@ export const signECDSA = async (string: string, keyFile: string): Promise<string
  * @returns {Promise<string>} error message if any
  * @returns {Promise<string>} stdout if any
  */
-export const verifyECDSA = async (string: string, signatureFile: string, publicKeyFile: string): Promise<[string, string, string]> => {
-  let result = '';
-  let verified: Buffer;
-  console.log(`echo ${string} | openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFile}`);
-  verified = execSync(`echo ${string} |
-    openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFile}`
-    // , (error, stdout, stderr) => {
-    // if (error) {
-    //   console.log(`error: ${error.message}`);
-    //   result = error.message;
-    //   return;
-    // }
-    // if (stderr) {
-    //   console.log(`stderr: ${stderr}`);        
-    //   result = stderr;
-    //   return;
-    // }
-    // console.log(`stdout verify: ${stdout}`);
-    // verified = true;
-    // result = stdout;
-  // }
-  );
-  const verifyCheck = verified.toString();
-  //@ts-ignore
-  return [verifyCheck, result, ''];
-}
+export const verifyECDSA = async (
+  string: string,
+  signatureFile: string,
+  publicKeyFile: string
+): Promise<[string, string, string]> => {
+  try {
+    let result = '';
+    const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
+    let verified;
+    console.log(
+      `echo ${string} | openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFolder}${signatureFile}`
+    );
+    verified = execSync(
+      `echo ${string} |
+    openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFolder}${signatureFile}`,
+      {
+        encoding: 'utf8',
+      }
+      // , (error, stdout, stderr) => {
+      // if (error) {
+      //   console.log(`error: ${error.message}`);
+      //   result = error.message;
+      //   return;
+      // }
+      // if (stderr) {
+      //   console.log(`stderr: ${stderr}`);
+      //   result = stderr;
+      //   return;
+      // }
+      // console.log(`stdout verify: ${stdout}`);
+      // verified = true;
+      // result = stdout;
+      // }
+    );
 
+    const verifyCheck = verified.toString();
+    //@ts-ignore
+    return [verifyCheck, result, ''];
+  } catch (error: any) {
+    console.log(error);
+    return [error.stdout, '', "Can't verify signature"];
+  }
+};
 
-
+/**
+ * turn exec into a promise
+ * @params {string} command
+ * @returns {Promise<string>}
+ */
+export const execPromise = (command: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(stdout.trim());
+    });
+  });
+};
