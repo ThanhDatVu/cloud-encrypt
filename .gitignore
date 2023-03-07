@@ -16,3 +16,9 @@ dist
 
 # docker volume
 data
+keys/sym/*
+keys/asym/*
+signatures/*
+images/*
+
+
