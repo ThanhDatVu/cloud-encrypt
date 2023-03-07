@@ -5,6 +5,7 @@ import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedKeyManagement, UpdateKeyManagementBody, IKeyManagementDoc, NewRegisteredKeyManagement } from './keyManagement.interfaces';
 import { exec } from 'child_process';
+import { execPromise } from '../utils';
 
 /**
  * Create a keyManagement
@@ -93,22 +94,18 @@ export const deleteKeyManagementById = async (keyManagementId: mongoose.Types.Ob
 
 /**
  * Generate a new Blowfish key and save it to a file
+ * @param {String} fileName: name of the file to save the key
  * @returns {Promise<string>}
  */
-export const generateBlowfishKey = async (): Promise<string> => {
+export const generateBlowfishKey = async (fileName: String = 'blowfish.keyy'): Promise<string> => {
   let result = '';
   const symKeyFolder = process.env['SYM_KEY_FOLDER']; 
-  exec(`openssl rand -base64 32 > ${symKeyFolder}blowfish.key`, (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      result = stderr;
-      return;
-    }
+  await execPromise(`openssl rand -base64 32 > ${symKeyFolder}${fileName}`).then((stdout) => {
     console.log(`stdout: ${stdout}`);
+    result = stdout;
+  }).catch((error) => {
+    console.log(`error: ${error.message}`);
+    result = error.message;
   });
   return result;
 };
@@ -121,30 +118,23 @@ export const generateBlowfishKey = async (): Promise<string> => {
 export const generateECDSAKeyPair = async (): Promise<string> => {
   let result = '';
   const asymKeyFolder = process.env['ASYM_KEY_FOLDER']; 
-  exec(`openssl ecparam -genkey -name secp256k1 -out ${asymKeyFolder}private.pem`, (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      result = stderr;
-      return;
-    }
+  execPromise(`openssl ecparam -genkey -name secp256k1 -out ${asymKeyFolder}private.pem`)
+  .then((stdout) => {
     console.log(`stdout: ${stdout}`);
+    result = stdout;
+  }).catch((error) => {
+    console.log(`error: ${error.message}`);
+    result = error.message;
   });
-  exec(`openssl ec -in ${asymKeyFolder}private.pem -pubout -out ${asymKeyFolder}public.pem`, (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      result = stderr;
-      return;
-    }
+  execPromise(`openssl ec -in ${asymKeyFolder}private.pem -pubout -out ${asymKeyFolder}public.pem`)
+  .then((stdout) => {
     console.log(`stdout: ${stdout}`);
+    result = stdout;
+  }).catch((error) => {
+    console.log(`error: ${error.message}`);
+    result = error.message;
   });
+  
   return result;
 }
 

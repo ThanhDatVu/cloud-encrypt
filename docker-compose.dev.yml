@@ -11,7 +11,9 @@ services:
       - ./src:/usr/src/app/src
       - ./images:/usr/src/app/images
       - ./keys:/usr/src/app/keys
+      - ./signatures:/usr/src/app/signatures
       - .env:/usr/src/app/.env
+      - ${PWD}/nodemon.json:/usr/src/app/nodemon.json
     command: yarn dev -L
 
 volumes:

@@ -7,7 +7,10 @@ import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as encryptService from './encrypt.service';
 import * as metadataService from '../metadata/metadata.service';
-
+// import uuid v4
+import pkg from 'uuid';
+const { v4 } = pkg;
+import { keyManagementService } from '../keyManagement';
 export const createEncrypt = catchAsync(async (req: Request, res: Response) => {
   const encrypt = await encryptService.createEncrypt(req.body);
   res.status(httpStatus.CREATED).send(encrypt);
@@ -48,18 +51,23 @@ export const deleteEncrypt = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const encryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+  const inputFile = req.body.inputFile || 'input.png';
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
-  const symKeyFile = 'blowfish.key';
+  const symKeyFile = 'l' || v4();
+  await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
 
   const result = await encryptService.encryptBlowfish(
     `${symKeyFolder}${symKeyFile}`,
-    `${imagesFolder}input.png`,
+    `${imagesFolder}${inputFile}`,
     `${imagesFolder}encrypted.png`
   );
-  const md5 = await encryptService.hashMD5(`${imagesFolder}input.png`);
+  console.log(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
+  await encryptService.encryptECDSA(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
+  const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
   const md5Signature = await encryptService.signECDSA(md5 ,`${asymKeyFolder}private.pem`);
+
   // const metadata = await metadataService.insertMetadata(`${imagesFolder}encrypted.png`, md5, md5Signature);
   res.send({ result, md5, md5Signature });
 });
@@ -81,3 +89,4 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.bin`, `${asymKeyFolder}public.pem`);
   res.send({ result, md5, verifyECDSA });
 });
+

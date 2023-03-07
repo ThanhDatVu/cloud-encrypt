@@ -4,9 +4,8 @@ import Encrypt from './encrypt.model';
 import ApiError from '../errors/ApiError';
 import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedEncrypt, UpdateEncryptBody, IEncryptDoc, NewRegisteredEncrypt } from './encrypt.interfaces';
-// @ts-ignore
-// import openssl from 'openssl-nodejs';
 import { exec, execSync } from 'child_process';
+import { execPromise } from '../utils';
 
 /**
  * Create a encrypt
@@ -214,7 +213,7 @@ export const hashMD5 = async (inputFile: string): Promise<string> => {
     //   result = buffer.toString();
     // });
     console.log(`openssl dgst -md5 ${inputFile}`);
-    const hash = execSync(`openssl dgst -md5 ${inputFile}`);
+    const hash = await execPromise(`openssl dgst -md5 ${inputFile}`);
     //@ts-ignore
     result = hash.toString().split('=')[1].trim();
     return result;
@@ -307,18 +306,50 @@ export const verifyECDSA = async (
 };
 
 /**
- * turn exec into a promise
- * @params {string} command
- * @returns {Promise<string>}
+ * Use openSSL ecdsa to encrypt a file
+  * @param {string} inputFile: file to be encrypted
+  * @param {string} outputFile: file to be saved
+  * @param {string} keyFile: key file of the public key
+  * @returns {Promise<string>}
+  * @returns {Promise<string>} stdout if any
+  * @returns {Promise<string>} error message if any
  */
-export const execPromise = (command: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-        return;
+export const encryptECDSA = async (
+  inputFile: string,
+  outputFile: string,
+  publicKeyFile: string
+): Promise<{
+  result: string;
+  stdout: string;
+  error: string;
+}> => {
+  try {
+    let result = '';
+    let stdout = '';
+    let error = '';
+    console.log(
+      `openssl enc -e -aes-256-ofb -in ${inputFile} -out ${outputFile} -k $(cat ${publicKeyFile}) -provider legacy -provider default`
+    );
+    execPromise(
+      `openssl enc -e -aes-256-ofb -in ${inputFile} -out ${outputFile} -k $(cat ${publicKeyFile}) -provider legacy -provider default`
+    )
+      .then((res) => {
+        console.log("encryptECDSA:Done");
+        console.log("res",res);
+        stdout = res;
       }
-      resolve(stdout.trim());
-    });
-  });
+      )
+      .catch((err) => {
+        console.log("encryptECDSA:Failed");
+        console.log(err);
+        error = err;
+      }
+      );
+    return { result, stdout, error };
+  }
+  catch (error: any) {
+    console.log(error);
+    return { result: '', stdout: '', error: error };
+  }
 };
+
