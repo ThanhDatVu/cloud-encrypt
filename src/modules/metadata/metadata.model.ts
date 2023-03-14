@@ -8,6 +8,16 @@ import { IMetadataDoc, IMetadataModel } from './metadata.interfaces';
 
 const metadataSchema = new mongoose.Schema<IMetadataDoc, IMetadataModel>(
   {
+    fileName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    hashValue: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     name: {
       type: String,
       required: true,

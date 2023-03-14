@@ -353,3 +353,63 @@ export const encryptECDSA = async (
   }
 };
 
+/**
+ * Use openSSL to generate a key pair of ec key and use it to implement 
+ * ecdh key exchange with output is a shared secret and a public key
+ * @params {string} keyFile: key file of the private key
+ * @returns {Promise<string>} shared secret
+ * @returns {Promise<string>} public key
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const ecdhKeyExchange = async (
+  systemPublicKeyFile: string,
+  tempPrivateKeyFile: string,
+  tempPublicKeyFile: string,
+  ): Promise<[string, string, string, string]> => {
+  try {
+    let result = '';
+    let publicKey = '';
+    let error = '';
+    let stdout = '';
+
+    console.log(`Generate File Private Emphamel Key: openssl ecparam -name secp256k1 -genkey -noout -out ${tempPrivateKeyFile}`);
+    execPromise(`openssl ecparam -name secp256k1 -genkey -noout -out ${tempPrivateKeyFile}`)
+
+    console.log(`Generate File Public Key: openssl pkey -in ${tempPrivateKeyFile} -pubout -out ${tempPublicKeyFile}.pub`);
+    execPromise(`openssl pkey -in ${tempPrivateKeyFile} -pubout -out ${tempPublicKeyFile}.pub`)
+      .then((res) => {
+        console.log("ecdhKeyExchange:Done");
+        console.log("res",res);
+        stdout = res;
+      }
+      )
+      .catch((err) => {
+        console.log("ecdhKeyExchange:Failed");
+        console.log(err);
+        error = err;
+      }
+      );
+
+    console.log(`Calculate shared secret: openssl pkeyutl -derive -inkey ${tempPrivateKeyFile} -peerkey ${systemPublicKeyFile} -out ${tempPrivateKeyFile}.secret`);
+    execPromise(`openssl pkeyutl -derive -inkey ${tempPrivateKeyFile} -peerkey ${systemPublicKeyFile} -out ${tempPrivateKeyFile}.secret`)
+      .then((res) => {
+        console.log("ecdhKeyExchange:Done");
+        console.log("res",res);
+        stdout = res;
+      }
+      )
+      .catch((err) => {
+        console.log("ecdhKeyExchange:Failed");
+        console.log(err);
+        error = err;
+      }
+      );  
+    return [result, publicKey, error, stdout];
+  }
+  catch (error: any) {
+    console.log(error);
+    return ['', '', error, ''];
+  }
+};
+

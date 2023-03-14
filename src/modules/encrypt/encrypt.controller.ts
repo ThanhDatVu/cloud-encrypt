@@ -56,16 +56,21 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
   const symKeyFile = 'l' || v4();
+  // generate blowfish key
   await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
 
+  // encrypt file with blowfish algorithm
   const result = await encryptService.encryptBlowfish(
     `${symKeyFolder}${symKeyFile}`,
     `${imagesFolder}${inputFile}`,
     `${imagesFolder}encrypted.png`
   );
   console.log(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
-  await encryptService.encryptECDSA(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
+  // await encryptService.encryptECDSA(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
+  // hash the original file
   const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
+
+  // sign the hash with system private key
   const md5Signature = await encryptService.signECDSA(md5 ,`${asymKeyFolder}private.pem`);
 
   // const metadata = await metadataService.insertMetadata(`${imagesFolder}encrypted.png`, md5, md5Signature);
@@ -79,13 +84,16 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
   const symKeyFile = 'blowfish.key';
 
+  // decrypt file with blowfish algorithm
   const result = await encryptService.decryptBlowfish(
     `${symKeyFolder}${symKeyFile}`,
     `${imagesFolder}encrypted.png`,
     `${imagesFolder}decrypted.png`
   );
+  // hash the decrypted file
   const md5 = await encryptService.hashMD5(`${imagesFolder}decrypted.png`);
   console.log(md5);
+  // verify the signature with system public key
   const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.bin`, `${asymKeyFolder}public.pem`);
   res.send({ result, md5, verifyECDSA });
 });

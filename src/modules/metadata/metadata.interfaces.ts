@@ -3,6 +3,10 @@ import { QueryResult } from '../paginate/paginate';
 import { AccessAndRefreshTokens } from '../token/token.interfaces';
 
 export interface IMetadata {
+  fileName: string;
+  hashValue: string;
+  hashSignaturePath: string;
+  filePublicKeyPath: string;
   name: string;
   email: string;
   password: string;

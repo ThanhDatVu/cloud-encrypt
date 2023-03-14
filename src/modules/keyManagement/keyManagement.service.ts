@@ -100,6 +100,8 @@ export const deleteKeyManagementById = async (keyManagementId: mongoose.Types.Ob
 export const generateBlowfishKey = async (fileName: String = 'blowfish.keyy'): Promise<string> => {
   let result = '';
   const symKeyFolder = process.env['SYM_KEY_FOLDER']; 
+  // implement emeral ecdh to generate a new Blowfish key
+  
   await execPromise(`openssl rand -base64 32 > ${symKeyFolder}${fileName}`).then((stdout) => {
     console.log(`stdout: ${stdout}`);
     result = stdout;
