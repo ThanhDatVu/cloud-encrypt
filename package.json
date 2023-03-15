@@ -18,10 +18,11 @@
     "start": "pm2 start ecosystem.config.json --no-daemon",
     "start:build": "tsc --build && pm2 start ecosystem.config.json --no-daemon",
     "compile": "tsc --build",
+    "serve": "npx cross-env NODE_ENV=development node --experimental-modules --es-module-specifier-resolution=node dist/index.js"
     "compile:watch": "tsc --build --watch",
     "tsnode": "ts-node --transpile-only --project tsconfig.json src/index",
     "pre:dev2": "cross-env NODE_ENV=development nodemon --experimental-modules --es-module-specifier-resolution=node dist/index.js",
-    "pre:dev": "cross-env NODE_ENV=development nodemon --experimental-modules --es-module-specifier-resolution=node dist/index.js",
+    "pre:dev": "cross-env NODE_ENV=development node --experimental-modules --es-module-specifier-resolution=node dist/index.js",
     "dev": "concurrently --kill-others \"yarn compile:watch\" \"yarn pre:dev\"",
     "tsnode:start": "ts-node --transpile-only --project tsconfig.json src/index",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest -i --colors --verbose --detectOpenHandles",

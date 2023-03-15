@@ -55,18 +55,17 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
-  const symKeyFile = 'l' || v4();
+  const fileID = v4();
   // generate blowfish key
-  await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
+  // await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
+  await encryptService.ecdhKeyExchange(`${asymKeyFolder}public.pem`, `${fileID}`);
 
   // encrypt file with blowfish algorithm
   const result = await encryptService.encryptBlowfish(
-    `${symKeyFolder}${symKeyFile}`,
+    `${symKeyFolder}${fileID}.secret`,
     `${imagesFolder}${inputFile}`,
     `${imagesFolder}encrypted.png`
   );
-  console.log(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
-  // await encryptService.encryptECDSA(`${symKeyFolder}${symKeyFile}`,`${symKeyFolder}${symKeyFile}-encrypted`, `${asymKeyFolder}public.pem`);
   // hash the original file
   const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
 

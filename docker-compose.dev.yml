@@ -14,7 +14,7 @@ services:
       - ./signatures:/usr/src/app/signatures
       - .env:/usr/src/app/.env
       - ${PWD}/nodemon.json:/usr/src/app/nodemon.json
-    command: yarn dev -L
+    command: sleep 3600
 
 volumes:
   mongo-data:

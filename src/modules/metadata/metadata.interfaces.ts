@@ -7,19 +7,14 @@ export interface IMetadata {
   hashValue: string;
   hashSignaturePath: string;
   filePublicKeyPath: string;
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  isEmailVerified: boolean;
 }
 
 export interface IMetadataDoc extends IMetadata, Document {
-  isPasswordMatch(password: string): Promise<boolean>;
+  // isPasswordMatch(password: string): Promise<boolean>;
 }
 
 export interface IMetadataModel extends Model<IMetadataDoc> {
-  isEmailTaken(email: string, excludeMetadataId?: mongoose.Types.ObjectId): Promise<boolean>;
+  // isEmailTaken(email: string, excludeMetadataId?: mongoose.Types.ObjectId): Promise<boolean>;
   paginate(filter: Record<string, any>, options: Record<string, any>): Promise<QueryResult>;
 }
 

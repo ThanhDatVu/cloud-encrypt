@@ -14,9 +14,6 @@ import { exec } from 'child_process';
  * @returns {Promise<IMetadataDoc>}
  */
 export const createMetadata = async (metadataBody: NewCreatedMetadata): Promise<IMetadataDoc> => {
-  if (await Metadata.isEmailTaken(metadataBody.email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
   return Metadata.create(metadataBody);
 };
 
@@ -26,9 +23,6 @@ export const createMetadata = async (metadataBody: NewCreatedMetadata): Promise<
  * @returns {Promise<IMetadataDoc>}
  */
 export const registerMetadata = async (metadataBody: NewRegisteredMetadata): Promise<IMetadataDoc> => {
-  if (await Metadata.isEmailTaken(metadataBody.email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
   return Metadata.create(metadataBody);
 };
 
@@ -70,9 +64,6 @@ export const updateMetadataById = async (
   const metadata = await getMetadataById(metadataId);
   if (!metadata) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Metadata not found');
-  }
-  if (updateBody.email && (await Metadata.isEmailTaken(updateBody.email, metadataId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
   Object.assign(metadata, updateBody);
   await metadata.save();
