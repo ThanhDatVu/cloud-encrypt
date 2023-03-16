@@ -1,3 +1,4 @@
+import { encryptBlowfish } from './../encrypt/encrypt.service';
 import mongoose, { Model, Document } from 'mongoose';
 import { QueryResult } from '../paginate/paginate';
 import { AccessAndRefreshTokens } from '../token/token.interfaces';
@@ -5,8 +6,9 @@ import { AccessAndRefreshTokens } from '../token/token.interfaces';
 export interface IMetadata {
   fileName: string;
   hashValue: string;
-  hashSignaturePath: string;
-  filePublicKeyPath: string;
+  signaturePath: string;
+  publicFileKeyPath: string;
+  encryptedFilePath: string;
 }
 
 export interface IMetadataDoc extends IMetadata, Document {

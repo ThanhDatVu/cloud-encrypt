@@ -20,6 +20,11 @@ if (config.env !== 'test') {
   app.use(morgan.errorHandler);
 }
 
+app.use(express.static('keys'));
+app.use(express.static('images'));
+app.use(express.static('signatures'));
+
+
 // set security HTTP headers
 app.use(helmet());
 

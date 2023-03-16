@@ -55,45 +55,59 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
+
+  const pathToEncryptedFile = `${imagesFolder}${inputFile}-encrypted.png`;
   const fileID = v4();
   // generate blowfish key
   // await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
-  await encryptService.ecdhKeyExchange(`${asymKeyFolder}public.pem`, `${fileID}`);
+  const { publicFileKeyPath, sharedSecretPath } = await encryptService.ecdhKeyExchange(`${asymKeyFolder}public.pem`, `${fileID}`);
 
   // encrypt file with blowfish algorithm
-  const result = await encryptService.encryptBlowfish(
-    `${symKeyFolder}${fileID}.secret`,
+  const { stdoutEncrypt, encryptedFilePath } = await encryptService.encryptBlowfish(
+    `${sharedSecretPath}`,
     `${imagesFolder}${inputFile}`,
-    `${imagesFolder}encrypted.png`
+    pathToEncryptedFile
   );
   // hash the original file
   const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
 
   // sign the hash with system private key
-  const md5Signature = await encryptService.signECDSA(md5 ,`${asymKeyFolder}private.pem`);
+  const { signResult, signaturePath } = await encryptService.signECDSA(md5 ,`${asymKeyFolder}private.pem`, fileID);
 
-  // const metadata = await metadataService.insertMetadata(`${imagesFolder}encrypted.png`, md5, md5Signature);
-  res.send({ result, md5, md5Signature });
+  const metadata = await metadataService.createMetadata({
+    fileName: inputFile,
+    hashValue: md5,
+    signaturePath,
+    publicFileKeyPath,
+    encryptedFilePath,
+  });
+  res.send({ metadata, signResult, stdoutEncrypt, md5, signaturePath, publicFileKeyPath, encryptedFilePath });
 });
 
 export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+  const metadataId = req.query['metadataId'];
+  if (!metadataId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'metadataId is required');
+  }
   const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
 
   const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
-  const symKeyFile = 'blowfish.key';
+
+  const metadata = await metadataService.getMetadataById(new mongoose.Types.ObjectId(metadataId.toString()));
 
   // decrypt file with blowfish algorithm
-  const result = await encryptService.decryptBlowfish(
-    `${symKeyFolder}${symKeyFile}`,
-    `${imagesFolder}encrypted.png`,
-    `${imagesFolder}decrypted.png`
-  );
-  // hash the decrypted file
-  const md5 = await encryptService.hashMD5(`${imagesFolder}decrypted.png`);
-  console.log(md5);
-  // verify the signature with system public key
-  const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.bin`, `${asymKeyFolder}public.pem`);
-  res.send({ result, md5, verifyECDSA });
+  // const result = await encryptService.decryptBlowfish(
+  //   `${symKeyFolder}${symKeyFile}`,
+  //   `${imagesFolder}encrypted.png`,
+  //   `${imagesFolder}decrypted.png`
+  // );
+  // // hash the decrypted file
+  // const md5 = await encryptService.hashMD5(`${imagesFolder}decrypted.png`);
+  // console.log(md5);
+  // // verify the signature with system public key
+  // const verifyECDSA = await encryptService.verifyECDSA(md5, `signature.bin`, `${asymKeyFolder}public.pem`);
+  // res.send({ result, md5, verifyECDSA });
+  res.send({ metadata });
 });
 
