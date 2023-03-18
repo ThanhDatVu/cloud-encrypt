@@ -244,9 +244,9 @@ export const signECDSA = async (string: string, systemPrivateKey: string, fileID
 
 /**
  * Use openSSL ecdsa to verify a signature
- * @params {string} string to be verified
- * @params {string} signatureFile: signature to be verified
- * @params {string} keyFile: key file of the public key
+ * @param {string} string to be verified
+ * @param {string} signatureFilePath: signature to be verified
+ * @param {string} systemPublicKeyFile: key file of the public key
  * @returns {Promise<string>} signature
  * @returns {Promise<boolean>} true if verified, false otherwise
  * @returns {Promise<string>} error message if any
@@ -254,37 +254,21 @@ export const signECDSA = async (string: string, systemPrivateKey: string, fileID
  */
 export const verifyECDSA = async (
   string: string,
-  signatureFile: string,
-  publicKeyFile: string
+  signatureFilePath: string,
+  systemPublicKeyFile: string
 ): Promise<[string, string, string]> => {
   try {
     let result = '';
-    const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
     let verified;
     console.log(
-      `echo ${string} | openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFolder}${signatureFile}`
+      `echo ${string} | openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`
     );
     verified = execSync(
       `echo ${string} |
-    openssl dgst -sha256 -verify ${publicKeyFile} -signature ${signatureFolder}${signatureFile}`,
+    openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`,
       {
         encoding: 'utf8',
       }
-      // , (error, stdout, stderr) => {
-      // if (error) {
-      //   console.log(`error: ${error.message}`);
-      //   result = error.message;
-      //   return;
-      // }
-      // if (stderr) {
-      //   console.log(`stderr: ${stderr}`);
-      //   result = stderr;
-      //   return;
-      // }
-      // console.log(`stdout verify: ${stdout}`);
-      // verified = true;
-      // result = stdout;
-      // }
     );
 
     const verifyCheck = verified.toString();
@@ -438,17 +422,19 @@ export const ecdhKeyExchange = async (
 export const ecdhKeyExchange2 = async (
   systemPrivateKeyFile: string,
   tempPublicKeyFile: string,
+  fileName: string
   ): Promise<{
     result: any,
     error: any,
-    stdout: any
+    stdout: any,
+    sharedSecretPath: any
   }> => {
   try {
     let result = '';
     let error = '';
     let stdout = '';
     const symKeyFolder = process.env['SYM_KEY_FOLDER'] || 'keys/sym/';
-    const sharedSecretPath = symKeyFolder + tempPublicKeyFile + ".decrypt.secret";
+    const sharedSecretPath = symKeyFolder + fileName + ".decrypt.secret";
     console.log(`Calculate shared secret: openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`);
     await execPromise(`openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`)
       .then((res) => {
@@ -463,11 +449,11 @@ export const ecdhKeyExchange2 = async (
         error = err;
       }
       ); 
-    return { result, error, stdout };  
+    return { result, error, stdout, sharedSecretPath };
 
   }
   catch (error: any) {
-    return { result: '', error: error, stdout: '' };
+    return { result: '', error: error, stdout: '', sharedSecretPath: '' };
   }
 };
   

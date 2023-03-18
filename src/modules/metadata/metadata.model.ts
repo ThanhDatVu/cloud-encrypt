@@ -13,6 +13,11 @@ const metadataSchema = new mongoose.Schema<IMetadataDoc, IMetadataModel>(
       required: true,
       trim: true,
     },
+    fileUuid: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     hashValue: {
       type: String,
       required: true,

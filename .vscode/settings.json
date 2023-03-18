@@ -3,6 +3,7 @@
     "encrypt",
     "kms",
     "metadata",
-    "signature"
+    "signature",
+    "decrypt"
   ]
 }
