@@ -4,6 +4,8 @@ import docsRoute from './swagger.route';
 import userRoute from './user.route';
 import encryptRoute from './encrypt.route';
 import keyManagementRoute from './keyManagement.route';
+import attachmentRoute from './attachment.route';
+import metadataRoute from './metadata.route';
 import config from '../../config/config';
 
 const router = express.Router();
@@ -29,7 +31,15 @@ const defaultIRoute: IRoute[] = [
   {
     path: '/kms',
     route: keyManagementRoute,
-  }
+  },
+  {
+    path: '/attachments',
+    route: attachmentRoute,
+  },
+  {
+    path: '/metadata',
+    route: metadataRoute,
+  },
 ];
 
 const devIRoute: IRoute[] = [

@@ -16,10 +16,7 @@ export const getMetadatas = catchAsync(async (req: Request, res: Response) => {
   const filter = pick(req.query, ['name', 'role']);
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
   const result = await metadataService.queryMetadatas(filter, options);
-  res.send({
-    message: 'getMetadatas-OKKDR',
-    result,
-  });
+  res.send(result);
 });
 
 export const getMetadata = catchAsync(async (req: Request, res: Response) => {

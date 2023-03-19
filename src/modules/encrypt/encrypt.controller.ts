@@ -9,6 +9,7 @@ import * as encryptService from './encrypt.service';
 import * as metadataService from '../metadata/metadata.service';
 // import uuid v4
 import pkg from 'uuid';
+import { is } from '@babel/types';
 const { v4 } = pkg;
 
 const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
@@ -67,21 +68,30 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   }
 
   const { sharedSecretPath } = await encryptService.ecdhKeyExchange2(`${systemPrivateKey}`, metadata.publicFileKeyPath, metadata.fileUuid);
-  console.log(sharedSecretPath);
 
   const decryptedFilePath = `${imagesFolder}${metadata.fileName}-decrypted.png`
 
   // decrypt file with blowfish algorithm 
-  const result = await encryptService.decryptBlowfish(
+  const decryptResult = await encryptService.decryptBlowfish(
     `${sharedSecretPath}`,
     `${metadata.encryptedFilePath}`,
     `${decryptedFilePath}`
   );
   // hash the decrypted file
   const md5 = await encryptService.hashMD5(decryptedFilePath);
-  console.log(md5);
   // verify the signature with system public key
   const verifyECDSA = await encryptService.verifyECDSA(md5, metadata.signaturePath, `${systemPublicKey}`);
-  res.send({ result, md5, verifyECDSA, metadata });
+  res.send({ 
+    dercypt:{
+      result: decryptResult,
+    }, 
+    hash: {
+      decryptedFilehash: md5,
+      originalHash: metadata.hashValue,
+      isHashEqual: md5 == metadata.hashValue,
+    }, 
+    verifyECDSA, 
+    metadata 
+  });
 });
 

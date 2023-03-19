@@ -136,6 +136,7 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
       console.log(err);
     });
 
+  console.log(`Blowfish encrypt command: openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
   await execPromise(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
     .then((res) => {
       console.log("encryptBlowfish:Done");
@@ -157,30 +158,16 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
  */
 export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
-  // keyFile = 'private.pem';
-  // exec(
-  //   `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`,
-  //   (error, stdout, stderr) => {
-  //     if (error) {
-  //       console.log(`error: ${error.message}`);
-  //       return;
-  //     }
-  //     if (stderr) {
-  //       console.log(`stderr: ${stderr}`);
-  //       result = stderr;
-  //       return;
-  //     }
-  //     console.log(`stdout: ${stdout}`);
-  //   }
-  // );
   await execPromise(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
     .then((res) => {
       console.log("decryptBlowfish:Done");
-      console.log("res",res);
+      console.log("decryptBlowfish",res);
+      result = "decryptBlowfish:Done";
     })
     .catch((err) => {
       console.log("decryptBlowfish:Failed");
       console.log(err);
+      result = "decryptBlowfish:Failed";
     });
   return result;
 };
