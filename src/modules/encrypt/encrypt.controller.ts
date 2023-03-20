@@ -23,7 +23,9 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   // const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   // const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
 
-  const pathToEncryptedFile = `${imagesFolder}${inputFile}-encrypted.png`;
+  // format d473b1c9-16f9-49b8-b98b-812b9983a0dd-kekw.png to d473b1c9-16f9-49b8-b98b-812b9983a0dd-kekw-encrypted.png
+  const [fileName, fileExtension] = inputFile.split('.');
+  const pathToEncryptedFile = `${imagesFolder}${fileName}-encrypted.${fileExtension}`;
   const fileID = v4();
   // generate blowfish key
   // await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
@@ -69,7 +71,9 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
 
   const { sharedSecretPath } = await encryptService.ecdhKeyExchange2(`${systemPrivateKey}`, metadata.publicFileKeyPath, metadata.fileUuid);
 
-  const decryptedFilePath = `${imagesFolder}${metadata.fileName}-decrypted.png`
+  
+  const [fileName, fileExtension] = metadata.fileName.split('.');
+  const decryptedFilePath = `${imagesFolder}${fileName}-decrypted.${fileExtension}`;
 
   // decrypt file with blowfish algorithm 
   const decryptResult = await encryptService.decryptBlowfish(
@@ -84,6 +88,7 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   res.send({ 
     dercypt:{
       result: decryptResult,
+      decryptedFilePath,
     }, 
     hash: {
       decryptedFilehash: md5,
