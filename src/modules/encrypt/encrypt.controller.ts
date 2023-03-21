@@ -85,8 +85,16 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const md5 = await encryptService.hashMD5(decryptedFilePath);
   // verify the signature with system public key
   const verifyECDSA = await encryptService.verifyECDSA(md5, metadata.signaturePath, `${systemPublicKey}`);
+
+  const fileContents = await encryptService.getFilesContent({
+    publicFileKeyContent: `${metadata.publicFileKeyPath}`,
+    signatureContent: `${metadata.signaturePath}`,
+    systemPrivateKeyContent: `${systemPrivateKey}`,
+    systemPublicKeyContent: `${systemPublicKey}`,
+    sharedSecretContent: `${sharedSecretPath}`,
+  });
   res.send({ 
-    dercypt:{
+    decrypt:{
       result: decryptResult,
       decryptedFilePath,
     }, 
@@ -96,7 +104,8 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
       isHashEqual: md5 == metadata.hashValue,
     }, 
     verifyECDSA, 
-    metadata 
+    metadata,
+    fileContents,
   });
 });
 

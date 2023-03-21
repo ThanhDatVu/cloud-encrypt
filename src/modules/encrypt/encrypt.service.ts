@@ -6,6 +6,8 @@ import { IOptions, QueryResult } from '../paginate/paginate';
 import { NewCreatedEncrypt, UpdateEncryptBody, IEncryptDoc, NewRegisteredEncrypt } from './encrypt.interfaces';
 import { exec, execSync } from 'child_process';
 import { execPromise } from '../utils';
+import fs from 'fs';
+import { object } from 'joi';
 
 /**
  * Create a encrypt
@@ -243,75 +245,36 @@ export const verifyECDSA = async (
   string: string,
   signatureFilePath: string,
   systemPublicKeyFile: string
-): Promise<[string, string, string]> => {
+): Promise<{
+  isValid: boolean;
+  stdout: string;
+  error: string;
+}> => {
   try {
     let result = '';
     let verified;
     console.log(
       `echo ${string} | openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`
     );
-    verified = execSync(
+    const signVerificationResult = await execPromise(
       `echo ${string} |
     openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`,
-      {
-        encoding: 'utf8',
-      }
     );
 
-    const verifyCheck = verified.toString();
+    console.log("signVerificationResult",signVerificationResult);
     //@ts-ignore
-    return [verifyCheck, result, ''];
+    return {
+      isValid: true,
+      stdout: signVerificationResult,
+      error: '',
+    }
   } catch (error: any) {
     console.log(error);
-    return [error.stdout, '', "Can't verify signature"];
-  }
-};
-
-/**
- * Use openSSL ecdsa to encrypt a file
-  * @param {string} inputFile: file to be encrypted
-  * @param {string} outputFile: file to be saved
-  * @param {string} keyFile: key file of the public key
-  * @returns {Promise<string>}
-  * @returns {Promise<string>} stdout if any
-  * @returns {Promise<string>} error message if any
- */
-export const encryptECDSA = async (
-  inputFile: string,
-  outputFile: string,
-  publicKeyFile: string
-): Promise<{
-  result: string;
-  stdout: string;
-  error: string;
-}> => {
-  try {
-    let result = '';
-    let stdout = '';
-    let error = '';
-    console.log(
-      `openssl enc -e -aes-256-ofb -in ${inputFile} -out ${outputFile} -k $(cat ${publicKeyFile}) -provider legacy -provider default`
-    );
-    execPromise(
-      `openssl enc -e -aes-256-ofb -in ${inputFile} -out ${outputFile} -k $(cat ${publicKeyFile}) -provider legacy -provider default`
-    )
-      .then((res) => {
-        console.log("encryptECDSA:Done");
-        console.log("res",res);
-        stdout = res;
-      }
-      )
-      .catch((err) => {
-        console.log("encryptECDSA:Failed");
-        console.log(err);
-        error = err;
-      }
-      );
-    return { result, stdout, error };
-  }
-  catch (error: any) {
-    console.log(error);
-    return { result: '', stdout: '', error: error };
+    return {
+      isValid: false,
+      stdout: '',
+      error: error.message,
+    };
   }
 };
 
@@ -444,5 +407,17 @@ export const ecdhKeyExchange2 = async (
   }
 };
   
-  
+export const getFilesContent = async (filePaths: any) => {
+  try {
+    let fileContents: any = {};
+    const fileContentsHandler = await Promise.all(Object.keys(filePaths).map(async (filePath: any) => {
+      fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]}`)
+    }));
+    return fileContents;
+  }
+  catch (error: any) {
+    console.log(error);
+    return { result: '', error: error, stdout: '' };
+  }
+};
 
