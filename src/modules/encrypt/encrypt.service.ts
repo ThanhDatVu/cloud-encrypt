@@ -122,33 +122,44 @@ export const generateBlowfishKey = async (): Promise<string> => {
  * @params {string} outputFile
  * @returns {Promise<string>}
  */
-export const encryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<{
+export const encryptBlowfish = async (
+  keyFile: string,
+  inputFile: string,
+  outputFile: string
+): Promise<{
   stdoutEncrypt: string;
+  encryptResult: string;
   encryptedFilePath: string;
 }> => {
   let stdoutEncrypt = '';
   let encryptedFile = outputFile;
+  let encryptResult = '';
   await execPromise(`cat ${keyFile}`)
     .then((res) => {
-      console.log("sharedSecretExists:Done");
-      console.log("Shared secret: ",res);
+      console.log('sharedSecretExists:Done');
+      console.log('Shared secret: ', res);
     })
     .catch((err) => {
-      console.log("sharedSecretExists:Failed");
+      console.log('sharedSecretExists:Failed');
       console.log(err);
     });
 
-  console.log(`Blowfish encrypt command: openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
-  await execPromise(`openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
+  console.log(
+    `Blowfish encrypt command: openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+  );
+  await execPromise(
+    `openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+  )
     .then((res) => {
-      console.log("encryptBlowfish:Done");
+      console.log('encryptBlowfish:Done');
       stdoutEncrypt = res;
+      encryptResult = 'encryptBlowfish:Done';
     })
     .catch((err) => {
-      console.log("encryptBlowfish:Failed");
+      console.log('encryptBlowfish:Failed');
       console.log(err);
     });
-  return { stdoutEncrypt, encryptedFilePath: encryptedFile };
+  return { stdoutEncrypt, encryptedFilePath: encryptedFile, encryptResult };
 };
 
 /**
@@ -160,16 +171,18 @@ export const encryptBlowfish = async (keyFile: string, inputFile: string, output
  */
 export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
-  await execPromise(`openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`)
+  await execPromise(
+    `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+  )
     .then((res) => {
-      console.log("decryptBlowfish:Done");
-      console.log("decryptBlowfish",res);
-      result = "decryptBlowfish:Done";
+      console.log('decryptBlowfish:Done');
+      console.log('decryptBlowfish', res);
+      result = 'decryptBlowfish:Done';
     })
     .catch((err) => {
-      console.log("decryptBlowfish:Failed");
+      console.log('decryptBlowfish:Failed');
       console.log(err);
-      result = "decryptBlowfish:Failed";
+      result = 'decryptBlowfish:Failed';
     });
   return result;
 };
@@ -204,31 +217,36 @@ export const hashMD5 = async (inputFile: string): Promise<string> => {
  * @params {string} keyFile: key file of the private key
  * @returns {Promise<string>} signature
  */
-export const signECDSA = async (string: string, systemPrivateKey: string, fileID: string): Promise<{
+export const signECDSA = async (
+  string: string,
+  systemPrivateKey: string,
+  fileID: string
+): Promise<{
   signaturePath: string;
   signResult: string;
+  error?: string;
 }> => {
   const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
   const signaturePath = `${signatureFolder}${fileID}.bin`;
   console.log(
     `echo ${string} |
-    openssl dgst -sha256 -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`
+    openssl dgst -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`
   );
   let signResult = '';
+  let error = '';
   execPromise(`echo ${string} |
-  openssl dgst -sha256 -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`)
-  .then((res) => {
-    console.log("signECDSA:Done");
-    console.log("res",res);
-    signResult = res;
-  })
-  .catch((err) => {
-    console.log("signECDSA:Failed");
-    console.log(err);
-    signResult = err;
-  });
-  ;
-  return { signaturePath, signResult };
+  openssl dgst -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`)
+    .then((res) => {
+      console.log('signECDSA:Done');
+      signResult = 'signECDSA:Done';
+    })
+    .catch((err) => {
+      console.log('signECDSA:Failed');
+      console.log(err);
+      signResult = 'signECDSA:Failed';
+      error = err;
+    });
+  return { signaturePath, signResult, error };
 };
 
 /**
@@ -253,21 +271,19 @@ export const verifyECDSA = async (
   try {
     let result = '';
     let verified;
-    console.log(
-      `echo ${string} | openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`
-    );
+    console.log(`echo ${string} | openssl dgst -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`);
     const signVerificationResult = await execPromise(
       `echo ${string} |
-    openssl dgst -sha256 -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`,
+    openssl dgst -verify ${systemPublicKeyFile} -signature ${signatureFilePath}`
     );
 
-    console.log("signVerificationResult",signVerificationResult);
+    console.log('signVerificationResult', signVerificationResult);
     //@ts-ignore
     return {
       isValid: true,
       stdout: signVerificationResult,
       error: '',
-    }
+    };
   } catch (error: any) {
     console.log(error);
     return {
@@ -279,9 +295,9 @@ export const verifyECDSA = async (
 };
 
 /**
- * Use openSSL to generate a key pair of ec key and use it to implement 
+ * Use openSSL to generate a key pair of ec key and use it to implement
  * ecdh key exchange with output is a shared secret and a public key
- * @param  string systemPublicKeyFile 
+ * @param  string systemPublicKeyFile
  * @param  string tempPrivateKeyFile uuid
  * @returns {Promise<string>} shared secret
  * @returns {Promise<string>} public key
@@ -290,81 +306,92 @@ export const verifyECDSA = async (
  */
 export const ecdhKeyExchange = async (
   systemPublicKeyFile: string,
-  tempPrivateKeyFile: string,
-  ): Promise<{
-    result: any,
-    publicFileKeyPath: any, 
-    sharedSecretPath: any,
-    error: any, 
-    stdout: any
-  }> => {
+  tempPrivateKeyFile: string
+): Promise<{
+  ecdhKeyExchangeResult: any;
+  publicFileKeyPath: any;
+  sharedSecretPath: any;
+  privateFileKeyPath: any;
+  error: any;
+  stdout: any;
+}> => {
   try {
     const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
     const symKeyFolder = process.env['SYM_KEY_FOLDER'] || 'keys/sym/';
     const asymKeyFolder = process.env['ASYM_KEY_FOLDER'] || 'keys/asym/';
     const tempPublicKeyFile = tempPrivateKeyFile + '.pub';
     const privateFileKeyPath = asymKeyFolder + tempPrivateKeyFile;
-    const publicFileKeyPath = privateFileKeyPath + ".pub";
-    const sharedSecretPath = symKeyFolder + tempPrivateKeyFile + ".encrypt.secret";
+    const publicFileKeyPath = privateFileKeyPath + '.pub';
+    const sharedSecretPath = symKeyFolder + tempPrivateKeyFile + '.encrypt.secret';
 
-    console.log("privateFileKeyPath",privateFileKeyPath);
-    console.log("publicFileKeyPath",publicFileKeyPath);
-    let result = '';
+    console.log('privateFileKeyPath', privateFileKeyPath);
+    console.log('publicFileKeyPath', publicFileKeyPath);
+    let ecdhKeyExchangeResult = '';
     let error = '';
     let stdout = '';
 
-
-    console.log(`Generate File Private Emphamel Key: openssl ecparam -name secp256k1 -genkey -noout -out ${privateFileKeyPath}`);
-    await execPromise(`openssl ecparam -name secp256k1 -genkey -noout -out ${privateFileKeyPath}`)
+    console.log(
+      `Generate File Private Emphamel Key: openssl ecparam -name secp256k1 -genkey -noout -out ${privateFileKeyPath}`
+    );
+    await execPromise(`openssl ecparam -name secp256k1 -genkey -noout -out ${privateFileKeyPath}`);
 
     console.log(`Generate File Public Key: openssl pkey -in ${privateFileKeyPath} -pubout -out ${publicFileKeyPath}`);
     await execPromise(`openssl pkey -in ${privateFileKeyPath} -pubout -out ${publicFileKeyPath}`)
       .then((res) => {
-        console.log("ecdhKeyExchange:Done");
-        console.log("res",res);
+        console.log('ecdhKeyExchange:Done');
         stdout = res;
-      }
-      )
+      })
       .catch((err) => {
-        console.log("ecdhKeyExchange:Failed");
-        console.error("Generate File Public Key", err);
+        console.log('ecdhKeyExchange:Failed');
+        console.error('Generate File Public Key', err);
         error = err;
-      }
-      );
+        ecdhKeyExchangeResult = 'ECDH Key Exchange:Failed';
+      });
 
-    console.log(`Calculate shared secret: openssl pkeyutl -derive -inkey ${privateFileKeyPath} -peerkey ${systemPublicKeyFile} -out ${sharedSecretPath}`);
-    await execPromise(`openssl pkeyutl -derive -inkey ${privateFileKeyPath} -peerkey ${systemPublicKeyFile} -out ${sharedSecretPath}`)
+    console.log(
+      `Calculate shared secret: openssl pkeyutl -derive -inkey ${privateFileKeyPath} -peerkey ${systemPublicKeyFile} -out ${sharedSecretPath}`
+    );
+    await execPromise(
+      `openssl pkeyutl -derive -inkey ${privateFileKeyPath} -peerkey ${systemPublicKeyFile} -out ${sharedSecretPath}`
+    )
       .then((res) => {
-        console.log("Calculate shared secret:Done")
-        console.log("ECDH Key Exchange:Done");
+        console.log('Calculate shared secret:Done');
+        console.log('ECDH Key Exchange:Done');
         stdout = res;
-      }
-      )
+        ecdhKeyExchangeResult = 'ECDH Key Exchange:Done';
+      })
       .catch((err) => {
-        console.log("Calculate shared secret:Failed");
-        console.error("Error: Calculate shared secret: ",err);
+        console.log('Calculate shared secret:Failed');
+        console.error('Error: Calculate shared secret: ', err);
         error = err;
-      }
-      );  
+        ecdhKeyExchangeResult = 'ECDH Key Exchange:Failed';
+      });
     const data = {
-      result,
-      publicFileKeyPath, 
+      ecdhKeyExchangeResult,
+      publicFileKeyPath,
       sharedSecretPath,
-      error, 
-      stdout
+      privateFileKeyPath,
+      error,
+      stdout,
     };
     return data;
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.log(error);
-    return { result: '', publicFileKeyPath: '', error: error, stdout: '' , sharedSecretPath: ''};
+    return {
+      ecdhKeyExchangeResult: 'ECDH Key Exchange:Failed',
+      publicFileKeyPath: '',
+      sharedSecretPath: '',
+      privateFileKeyPath: '',
+      error: error.message,
+      stdout: '',
+    };
   }
 };
 
 /**
  * Use openSSL to perform ecdh key exchange with input is a system private key and a public key obtain from above
  * @param  string systemPrivateKeyFile
- * @param  string tempPublicKeyFile 
+ * @param  string tempPublicKeyFile
  * @returns {Promise<string>} shared secret
  * @returns {Promise<string>} error message if any
  * @returns {Promise<string>} stdout if any
@@ -373,51 +400,50 @@ export const ecdhKeyExchange2 = async (
   systemPrivateKeyFile: string,
   tempPublicKeyFile: string,
   fileName: string
-  ): Promise<{
-    result: any,
-    error: any,
-    stdout: any,
-    sharedSecretPath: any
-  }> => {
+): Promise<{
+  result: any;
+  error: any;
+  stdout: any;
+  sharedSecretPath: any;
+}> => {
   try {
     let result = '';
     let error = '';
     let stdout = '';
     const symKeyFolder = process.env['SYM_KEY_FOLDER'] || 'keys/sym/';
-    const sharedSecretPath = symKeyFolder + fileName + ".decrypt.secret";
-    console.log(`Calculate shared secret: openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`);
-    await execPromise(`openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`)
+    const sharedSecretPath = symKeyFolder + fileName + '.decrypt.secret';
+    console.log(
+      `Calculate shared secret: openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`
+    );
+    await execPromise(
+      `openssl pkeyutl -derive -inkey ${systemPrivateKeyFile} -peerkey ${tempPublicKeyFile} -out ${sharedSecretPath}`
+    )
       .then((res) => {
-        console.log("ecdhKeyExchange:Done");
-        console.log("res",res);
+        console.log('ecdhKeyExchange:Done');
         stdout = res;
-      }
-      )
+      })
       .catch((err) => {
-        console.log("ecdhKeyExchange:Failed");
+        console.log('ecdhKeyExchange:Failed');
         console.log(err);
         error = err;
-      }
-      ); 
+      });
     return { result, error, stdout, sharedSecretPath };
-
-  }
-  catch (error: any) {
+  } catch (error: any) {
     return { result: '', error: error, stdout: '', sharedSecretPath: '' };
   }
 };
-  
+
 export const getFilesContent = async (filePaths: any) => {
   try {
     let fileContents: any = {};
-    const fileContentsHandler = await Promise.all(Object.keys(filePaths).map(async (filePath: any) => {
-      fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]}`)
-    }));
+    const fileContentsHandler = await Promise.all(
+      Object.keys(filePaths).map(async (filePath: any) => {
+        fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]}`);
+      })
+    );
     return fileContents;
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.log(error);
     return { result: '', error: error, stdout: '' };
   }
 };
-

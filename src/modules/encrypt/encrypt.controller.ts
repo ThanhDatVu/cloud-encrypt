@@ -29,10 +29,11 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const fileID = v4();
   // generate blowfish key
   // await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
-  const { publicFileKeyPath, sharedSecretPath } = await encryptService.ecdhKeyExchange(`${systemPublicKey}`, `${fileID}`);
+  const { publicFileKeyPath, sharedSecretPath, privateFileKeyPath, ecdhKeyExchangeResult } =
+    await encryptService.ecdhKeyExchange(`${systemPublicKey}`, `${fileID}`);  
 
   // encrypt file with blowfish algorithm
-  const { stdoutEncrypt, encryptedFilePath } = await encryptService.encryptBlowfish(
+  const { stdoutEncrypt, encryptedFilePath, encryptResult } = await encryptService.encryptBlowfish(
     `${sharedSecretPath}`,
     `${imagesFolder}${inputFile}`,
     pathToEncryptedFile
@@ -41,7 +42,7 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
 
   // sign the hash with system private key
-  const { signResult, signaturePath } = await encryptService.signECDSA(md5 ,`${systemPrivateKey}`, fileID);
+  const { signResult, signaturePath } = await encryptService.signECDSA(md5, `${systemPrivateKey}`, fileID);
 
   const metadata = await metadataService.createMetadata({
     fileName: inputFile,
@@ -52,9 +53,35 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     encryptedFilePath,
   });
 
+  const fileContents = await encryptService.getFilesContent({
+    signatureContent: `${signaturePath}`,
+    systemPrivateKeyContent: `${systemPrivateKey}`,
+    systemPublicKeyContent: `${systemPublicKey}`,
+    filePublicKeyContent: `${publicFileKeyPath}`,
+    filePrivateKeyContent: `${privateFileKeyPath}`,
+    sharedSecretContent: `${sharedSecretPath}`,
+  });
 
-
-  res.send({ metadata, signResult, stdoutEncrypt, md5, signaturePath, publicFileKeyPath, encryptedFilePath });
+  res.send({
+    metadata,
+    encrypt: {
+      encryptResult,
+      stdoutEncrypt,
+    },
+    hash: {
+      originalHash: md5,
+    },
+    signECDSA: {
+      signResult,
+      signaturePath,
+    },
+    ecdhKeyExchange: {
+      ecdhKeyExchangeResult,
+      publicFileKeyPath,
+      encryptedFilePath,
+    },
+    fileContents,
+  });
 });
 
 export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
@@ -69,13 +96,16 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     throw new ApiError(httpStatus.NOT_FOUND, 'Metadata not found');
   }
 
-  const { sharedSecretPath } = await encryptService.ecdhKeyExchange2(`${systemPrivateKey}`, metadata.publicFileKeyPath, metadata.fileUuid);
+  const { sharedSecretPath } = await encryptService.ecdhKeyExchange2(
+    `${systemPrivateKey}`,
+    metadata.publicFileKeyPath,
+    metadata.fileUuid
+  );
 
-  
   const [fileName, fileExtension] = metadata.fileName.split('.');
   const decryptedFilePath = `${imagesFolder}${fileName}-decrypted.${fileExtension}`;
 
-  // decrypt file with blowfish algorithm 
+  // decrypt file with blowfish algorithm
   const decryptResult = await encryptService.decryptBlowfish(
     `${sharedSecretPath}`,
     `${metadata.encryptedFilePath}`,
@@ -93,19 +123,18 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     systemPublicKeyContent: `${systemPublicKey}`,
     sharedSecretContent: `${sharedSecretPath}`,
   });
-  res.send({ 
-    decrypt:{
+  res.send({
+    decrypt: {
       result: decryptResult,
       decryptedFilePath,
-    }, 
+    },
     hash: {
       decryptedFilehash: md5,
       originalHash: metadata.hashValue,
       isHashEqual: md5 == metadata.hashValue,
-    }, 
-    verifyECDSA, 
+    },
+    verifyECDSA,
     metadata,
     fileContents,
   });
 });
-
