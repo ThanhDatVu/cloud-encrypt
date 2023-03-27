@@ -145,10 +145,10 @@ export const encryptBlowfish = async (
     });
 
   console.log(
-    `Blowfish encrypt command: openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+    `Blowfish encrypt command: openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
   );
   await execPromise(
-    `openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+    `openssl enc -e -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
   )
     .then((res) => {
       console.log('encryptBlowfish:Done');
@@ -171,8 +171,11 @@ export const encryptBlowfish = async (
  */
 export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
   let result = '';
+  console.log(
+    `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
+  );
   await execPromise(
-    `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(cat ${keyFile}) -provider legacy -provider default`
+    `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
   )
     .then((res) => {
       console.log('decryptBlowfish:Done');
@@ -433,6 +436,10 @@ export const ecdhKeyExchange2 = async (
   }
 };
 
+/**
+ * @param  {any} filePaths
+ * @returns {Promise<string>} file contents
+ */
 export const getFilesContent = async (filePaths: any) => {
   try {
     let fileContents: any = {};
@@ -447,3 +454,20 @@ export const getFilesContent = async (filePaths: any) => {
     return { result: '', error: error, stdout: '' };
   }
 };
+
+//get file content in hex format with xxd
+export const getFilesContentHex = async (filePaths: any) => {
+  try {
+    let fileContents: any = {};
+    const fileContentsHandler = await Promise.all(
+      Object.keys(filePaths).map(async (filePath: any) => {
+        fileContents[filePath] = await execPromise(`xxd -p ${filePaths[filePath]} | tr -d '\n'`);
+      })
+    );
+    return fileContents;
+  } catch (error: any) {
+    console.log(error);
+    return { result: '', error: error, stdout: '' };
+  }
+};
+

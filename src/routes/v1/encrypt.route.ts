@@ -8,19 +8,19 @@ const router: Router = express.Router();
 router.route('/').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.createEncrypt),
-  encryptController.encryptBlowfish
+  encryptController.encrypt
 );
 
-router.route('/blowfish').post(
+router.route('/encrypt').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.encryptBlowfish),
-  encryptController.encryptBlowfish
+  encryptController.encrypt
 );
 
-router.route('/decryptBlowfish').post(
+router.route('/decrypt').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.encryptBlowfish),
-  encryptController.decryptBlowfish
+  encryptController.decrypt
 );
 
 

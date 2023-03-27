@@ -18,7 +18,7 @@ const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
 const systemPublicKey: string = `${asymKeyFolder}public.pem`;
 const systemPrivateKey: string = `${asymKeyFolder}private.pem`;
 
-export const encryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+export const encrypt = catchAsync(async (req: Request, res: Response) => {
   const inputFile = req.body.inputFile || 'input.png';
   // const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
   // const asymKeyFolder: string = process.env['ASYM_KEY_FOLDER'] || 'asym_key';
@@ -54,12 +54,15 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
   });
 
   const fileContents = await encryptService.getFilesContent({
-    signatureContent: `${signaturePath}`,
     systemPrivateKeyContent: `${systemPrivateKey}`,
     systemPublicKeyContent: `${systemPublicKey}`,
     filePublicKeyContent: `${publicFileKeyPath}`,
     filePrivateKeyContent: `${privateFileKeyPath}`,
-    sharedSecretContent: `${sharedSecretPath}`,
+  });
+
+  const fileContentsHex = await encryptService.getFilesContentHex({
+    signatureContent: `${signaturePath}`,
+    sharedSecretContent: `${sharedSecretPath}`
   });
 
   res.send({
@@ -80,11 +83,14 @@ export const encryptBlowfish = catchAsync(async (req: Request, res: Response) =>
       publicFileKeyPath,
       encryptedFilePath,
     },
-    fileContents,
+    fileContents: {
+      ...fileContents,
+      ...fileContentsHex
+    },
   });
 });
 
-export const decryptBlowfish = catchAsync(async (req: Request, res: Response) => {
+export const decrypt = catchAsync(async (req: Request, res: Response) => {
   const metadataId = req.query['metadataId'];
   if (!metadataId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'metadataId is required');
@@ -118,10 +124,13 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
 
   const fileContents = await encryptService.getFilesContent({
     publicFileKeyContent: `${metadata.publicFileKeyPath}`,
-    signatureContent: `${metadata.signaturePath}`,
     systemPrivateKeyContent: `${systemPrivateKey}`,
     systemPublicKeyContent: `${systemPublicKey}`,
-    sharedSecretContent: `${sharedSecretPath}`,
+  });
+
+  const fileContentsHex = await encryptService.getFilesContentHex({
+    signatureContent: `${metadata.signaturePath}`,
+    sharedSecretContent: `${sharedSecretPath}`
   });
   res.send({
     decrypt: {
@@ -135,6 +144,9 @@ export const decryptBlowfish = catchAsync(async (req: Request, res: Response) =>
     },
     verifyECDSA,
     metadata,
-    fileContents,
+    fileContents: {
+      ...fileContents,
+      ...fileContentsHex
+    },
   });
 });
