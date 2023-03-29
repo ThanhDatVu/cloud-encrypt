@@ -8,7 +8,7 @@ export interface IMetadata {
   fileUuid: string;
   hashValue: string;
   signaturePath: string;
-  publicFileKeyPath: string;
+  encryptedFileKey: string;
   encryptedFilePath: string;
 }
 

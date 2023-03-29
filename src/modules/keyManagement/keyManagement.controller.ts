@@ -58,3 +58,9 @@ export const generateECDSAKey = catchAsync(async (req: Request, res: Response) =
   res.send(result);
 });
 
+export const generateRSAKey = catchAsync(async (req: Request, res: Response) => {
+  req = req;
+  const result = await keyManagementService.generateRSAKeyPair();
+  res.send(result);
+});
+

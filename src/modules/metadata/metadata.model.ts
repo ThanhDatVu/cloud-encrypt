@@ -28,7 +28,7 @@ const metadataSchema = new mongoose.Schema<IMetadataDoc, IMetadataModel>(
       required: true,
       trim: true,
     },
-    publicFileKeyPath: {
+    encryptedFileKey: {
       type: String,
       required: true,
       trim: true,

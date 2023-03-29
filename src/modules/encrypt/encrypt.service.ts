@@ -10,112 +10,6 @@ import fs from 'fs';
 import { object } from 'joi';
 
 /**
- * Create a encrypt
- * @param {NewCreatedEncrypt} encryptBody
- * @returns {Promise<IEncryptDoc>}
- */
-export const createEncrypt = async (encryptBody: NewCreatedEncrypt): Promise<IEncryptDoc> => {
-  if (await Encrypt.isEmailTaken(encryptBody.email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
-  return Encrypt.create(encryptBody);
-};
-
-/**
- * Register a encrypt
- * @param {NewRegisteredEncrypt} encryptBody
- * @returns {Promise<IEncryptDoc>}
- */
-export const registerEncrypt = async (encryptBody: NewRegisteredEncrypt): Promise<IEncryptDoc> => {
-  if (await Encrypt.isEmailTaken(encryptBody.email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
-  return Encrypt.create(encryptBody);
-};
-
-/**
- * Query for encrypts
- * @param {Object} filter - Mongo filter
- * @param {Object} options - Query options
- * @returns {Promise<QueryResult>}
- */
-export const queryEncrypts = async (filter: Record<string, any>, options: IOptions): Promise<QueryResult> => {
-  const encrypts = await Encrypt.paginate(filter, options);
-  return encrypts;
-};
-
-/**
- * Get encrypt by id
- * @param {mongoose.Types.ObjectId} id
- * @returns {Promise<IEncryptDoc | null>}
- */
-export const getEncryptById = async (id: mongoose.Types.ObjectId): Promise<IEncryptDoc | null> => Encrypt.findById(id);
-
-/**
- * Get encrypt by email
- * @param {string} email
- * @returns {Promise<IEncryptDoc | null>}
- */
-export const getEncryptByEmail = async (email: string): Promise<IEncryptDoc | null> => Encrypt.findOne({ email });
-
-/**
- * Update encrypt by id
- * @param {mongoose.Types.ObjectId} encryptId
- * @param {UpdateEncryptBody} updateBody
- * @returns {Promise<IEncryptDoc | null>}
- */
-export const updateEncryptById = async (
-  encryptId: mongoose.Types.ObjectId,
-  updateBody: UpdateEncryptBody
-): Promise<IEncryptDoc | null> => {
-  const encrypt = await getEncryptById(encryptId);
-  if (!encrypt) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Encrypt not found');
-  }
-  if (updateBody.email && (await Encrypt.isEmailTaken(updateBody.email, encryptId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
-  Object.assign(encrypt, updateBody);
-  await encrypt.save();
-  return encrypt;
-};
-
-/**
- * Delete encrypt by id
- * @param {mongoose.Types.ObjectId} encryptId
- * @returns {Promise<IEncryptDoc | null>}
- */
-export const deleteEncryptById = async (encryptId: mongoose.Types.ObjectId): Promise<IEncryptDoc | null> => {
-  const encrypt = await getEncryptById(encryptId);
-  if (!encrypt) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Encrypt not found');
-  }
-  await encrypt.remove();
-  return encrypt;
-};
-
-/**
- * Generate a new Blowfish key
- * @returns {Promise<string>}
- */
-export const generateBlowfishKey = async (): Promise<string> => {
-  const KEY_LENGTH = 128; // TODO: move to config
-  let key = '';
-  exec(`openssl rand -base64 ${KEY_LENGTH}`, (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      key = stderr;
-      return;
-    }
-    console.log(`stdout: ${stdout}`);
-  });
-  return key;
-};
-/**
  * Use Blowfish encryption to encrypt a file with key from a file in openssl 3.0.0
  * @params {string} keyFile
  * @params {string} inputFile
@@ -471,3 +365,188 @@ export const getFilesContentHex = async (filePaths: any) => {
   }
 };
 
+/**
+ * encrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} publicKeyPath
+ */
+export const encryptRSA = async (filePaths: any, publicKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedKeyPath = `${fileName}-encrypted.${fileExtension}`;
+    // using pkeyutl to encrypt file
+    console.log(
+      `Encrypt file: openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`
+    );
+    
+    await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`)
+      .then((res) => {
+        console.log('Encrypt file:Done');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+    return { encryptedKeyPath, result, error, stdout };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * decrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} privateKeyPath
+ * @returns {Promise<string>} file contents
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+
+export const decryptRSA = async (filePaths: any, privateKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedFilePath = `${fileName}-decrypted.${fileExtension}`;
+    // using pkeyutl to decrypt file
+    console.log(
+      `Decrypt file with RSA: openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedFilePath}`
+    );
+    await execPromise(`openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedFilePath}`)
+      .then((res) => {
+        console.log('Decrypt file:Done');
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+    return { decryptedFilePath, result, error, stdout };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * Use openSSL RSA to sign a string
+ * @params {string} string to be signed
+ * @params {string} keyFile: key file of the private key
+ * @returns {Promise<string>} signature
+ */
+export const signRSA = async (
+  string: string,
+  systemPrivateKey: string,
+  fileID: string
+): Promise<{
+  signaturePath: string;
+  signResult: string;
+  error?: string;
+}> => {
+  const signatureFolder = process.env['SIGNATURE_FOLDER'] || 'signatures';
+  const signaturePath = `${signatureFolder}${fileID}.bin`;
+  console.log(
+    `echo ${string} |
+    openssl dgst -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`
+  );
+  let signResult = '';
+  let error = '';
+  execPromise(`echo ${string} |
+  openssl dgst -sign ${systemPrivateKey} -out ${signaturePath} -provider legacy -provider default`)
+    .then((res) => {
+      console.log('signRSA:Done');
+      signResult = 'signRSA:Done';
+    })
+    .catch((err) => {
+      console.log('signRSA:Failed');
+      console.log(err);
+      signResult = 'signRSA:Failed';
+      error = err;
+    });
+  return { signaturePath, signResult, error };
+};
+
+/**
+ * Use openSSL RSA to verify a string
+ * @params {string} string to be verified
+ * @params {string} signaturePath: path to the signature file
+ * @params {string} publicKeyPath: path to the public key file
+ * @returns {Promise<string>} signature
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const verifyRSA = async (
+  string: string,
+  signaturePath: string,
+  publicKeyPath: string
+): Promise<{
+  verifyResult: string;
+  error?: string;
+  stdout?: string;
+}> => {
+  try {
+    console.log(
+      `echo ${string} |
+    openssl dgst -verify ${publicKeyPath} -signature ${signaturePath} -provider legacy -provider default`
+    );
+    let verifyResult = '';
+    let error = '';
+    let stdout = '';
+    await execPromise(
+      `echo ${string} |
+    openssl dgst -verify ${publicKeyPath} -signature ${signaturePath} -provider legacy -provider default`
+    )
+      .then((res) => {
+        console.log('verifyRSA:Done');
+        verifyResult = 'verifyRSA:Done';
+        stdout = res;
+      })
+      .catch((err) => {
+        console.log('verifyRSA:Failed');
+        console.log(err);
+        verifyResult = 'verifyRSA:Failed';
+        error = err;
+      });
+    return { verifyResult, error, stdout };
+  } catch (error: any) {
+    return { verifyResult: 'verifyRSA:Failed', error: error, stdout: '' };
+  }
+};
+
+/**
+ * generate Blowfish key with openssl and save to file
+ * @param  {any} keyLength
+ * @returns {Promise<string>} key
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const generateBlowfishKey = async (keyPath: string, keyLength: any = 64) => {
+  try {
+    let generateBlowfishKeyResult = '';
+    let error = '';
+    let stdout = '';
+    console.log(`Generate Blowfish key: openssl rand -hex ${keyLength} > ${keyPath}`);
+    await execPromise(`openssl rand -hex ${keyLength} > ${keyPath}`)
+      .then((res) => {
+        console.log('Generate Blowfish key:Done');
+        stdout = res;
+        generateBlowfishKeyResult = 'Generate Blowfish key:Done';
+      })
+      .catch((err) => {
+        console.log('Generate Blowfish key:Failed');
+        console.log(err);
+        error = err;
+      });
+    return { blowfishKeyPath: keyPath, generateBlowfishKeyResult, error, stdout };
+  } catch (error: any) {
+    return { generateBlowfishKeyResult: 'Generate Blowfish key:Failed', error: error, stdout: '' };
+  }
+};

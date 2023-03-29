@@ -5,37 +5,11 @@ import { keyManagementController, keyManagementValidation } from '../../modules/
 
 const router: Router = express.Router();
 
-router
-  .route('/generate-blowfish-key')
-  .post(
-    // auth('manageKeyManagements'),
-    // validate(keyManagementValidation.createKeyManagement),
-    keyManagementController.generateBlowfishKey
-  )
-  .get(validate(keyManagementValidation.getKeyManagements), keyManagementController.getKeyManagements);
+router.route('/generate-blowfish-key').post(keyManagementController.generateBlowfishKey);
 
-router
-  .route('/generate-edcsa-key')
-  .post(
-    // auth('manageKeyManagements'),
-    // validate(keyManagementValidation.createKeyManagement),
-    keyManagementController.generateECDSAKey
-  )
-  .get(validate(keyManagementValidation.getKeyManagements), keyManagementController.getKeyManagements);
+router.route('/generate-edcsa-key').post(keyManagementController.generateECDSAKey);
 
-router
-  .route('/:keyManagementId')
-  .get(auth('getKeyManagements'), validate(keyManagementValidation.getKeyManagement), keyManagementController.getKeyManagement)
-  .patch(
-    // auth('manageKeyManagements'),
-    validate(keyManagementValidation.updateKeyManagement),
-    keyManagementController.updateKeyManagement
-  )
-  .delete(
-    // auth('manageKeyManagements'),
-    validate(keyManagementValidation.deleteKeyManagement),
-    keyManagementController.deleteKeyManagement
-  );
+router.route('/generate-rsa-key').post(keyManagementController.generateRSAKey);
 
 export default router;
 

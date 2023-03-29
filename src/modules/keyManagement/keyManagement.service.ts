@@ -140,3 +140,35 @@ export const generateECDSAKeyPair = async (): Promise<string> => {
   return result;
 }
 
+/**
+ * Generate a new RSA key pair and save it to 2 files
+ * @returns {Promise<string>}
+ */
+export const generateRSAKeyPair = async (keySize: number = 2048): Promise<string> => {
+  let result = '';
+  const asymKeyFolder = process.env['ASYM_KEY_FOLDER']; 
+  const privateKeyPath = `${asymKeyFolder}private-rsa.pem`;
+  const publicKeyPath = `${asymKeyFolder}public-rsa.pem`;
+  console.log(`Generating RSA key pair with size ${keySize}...`)
+  console.log(`Command: openssl genrsa -out ${privateKeyPath} ${keySize}`)
+  await execPromise(`openssl genrsa -out ${privateKeyPath} ${keySize}`)
+  .then((stdout) => {
+    console.log(`stdout: ${stdout}`);
+    result = stdout;
+  }).catch((error) => {
+    console.log(`error: ${error.message}`);
+    result = error.message;
+  });
+  console.log(`Command: openssl rsa -in ${privateKeyPath} -pubout -out ${publicKeyPath}`)
+  await execPromise(`openssl rsa -in ${privateKeyPath} -pubout -out ${publicKeyPath}`)
+  .then((stdout) => {
+    console.log(`stdout: ${stdout}`);
+    result = stdout;
+  }).catch((error) => {
+    console.log(`error: ${error.message}`);
+    result = error.message;
+  });
+  
+  return result;
+}
+
