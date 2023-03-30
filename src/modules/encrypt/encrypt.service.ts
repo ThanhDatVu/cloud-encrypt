@@ -63,8 +63,14 @@ export const encryptBlowfish = async (
  * @params {string} outputFile: file to be saved
  * @returns {Promise<string>}
  */
-export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<string> => {
-  let result = '';
+export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<{
+  decryptBlowfishResult: string,
+  decryptedFilePath: string,
+  error?: string
+  decryptStdout?: string
+}> => {
+  try {
+  let decryptBlowfishResult = '';
   console.log(
     `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
   );
@@ -74,14 +80,24 @@ export const decryptBlowfish = async (keyFile: string, inputFile: string, output
     .then((res) => {
       console.log('decryptBlowfish:Done');
       console.log('decryptBlowfish', res);
-      result = 'decryptBlowfish:Done';
+      decryptBlowfishResult = 'decryptBlowfish:Done';
     })
     .catch((err) => {
       console.log('decryptBlowfish:Failed');
       console.log(err);
-      result = 'decryptBlowfish:Failed';
+      decryptBlowfishResult = 'decryptBlowfish:Failed';
     });
-  return result;
+  return {
+    decryptBlowfishResult,
+    decryptedFilePath: outputFile,
+  };
+  } catch (error) {
+    console.log(error);
+    return {
+      decryptBlowfishResult: 'decryptBlowfish:Failed',
+      decryptedFilePath: outputFile,
+    };
+  }
 };
 
 /**
@@ -341,21 +357,22 @@ export const getFilesContent = async (filePaths: any) => {
       Object.keys(filePaths).map(async (filePath: any) => {
         fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]}`);
       })
-    );
-    return fileContents;
-  } catch (error: any) {
-    console.log(error);
-    return { result: '', error: error, stdout: '' };
-  }
-};
-
-//get file content in hex format with xxd
-export const getFilesContentHex = async (filePaths: any) => {
+      );
+      return fileContents;
+    } catch (error: any) {
+      console.log(error);
+      return { result: '', error: error, stdout: '' };
+    }
+  };
+  
+  //get file content in hex format with xxd
+  export const getFilesContentHex = async (filePaths: any) => {
   try {
     let fileContents: any = {};
     const fileContentsHandler = await Promise.all(
       Object.keys(filePaths).map(async (filePath: any) => {
-        fileContents[filePath] = await execPromise(`xxd -p ${filePaths[filePath]} | tr -d '\n'`);
+        // get only the first 1000 characters
+        fileContents[filePath] = await execPromise(`xxd -p ${filePaths[filePath]} | tr -d '\n'  | head -c 1000`);
       })
     );
     return fileContents;
@@ -414,12 +431,12 @@ export const decryptRSA = async (filePaths: any, privateKeyPath: any) => {
     let error = '';
     let stdout = '';
     const [fileName, fileExtension] = filePaths.split('.');
-    const decryptedFilePath = `${fileName}-decrypted.${fileExtension}`;
+    const decryptedKeyPath = `${fileName}-decrypted.${fileExtension}`;
     // using pkeyutl to decrypt file
     console.log(
-      `Decrypt file with RSA: openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedFilePath}`
+      `Decrypt file with RSA: openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedKeyPath}`
     );
-    await execPromise(`openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedFilePath}`)
+    await execPromise(`openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedKeyPath}`)
       .then((res) => {
         console.log('Decrypt file:Done');
         stdout = res;
@@ -430,7 +447,7 @@ export const decryptRSA = async (filePaths: any, privateKeyPath: any) => {
         console.log(err);
         error = err;
       });
-    return { decryptedFilePath, result, error, stdout };
+    return { decryptedKeyPath , result, error, stdout };
   } catch (error: any) {
     return { result: '', error: error, stdout: '' };
   }
@@ -488,7 +505,7 @@ export const verifyRSA = async (
   signaturePath: string,
   publicKeyPath: string
 ): Promise<{
-  verifyResult: string;
+  isValid: boolean;
   error?: string;
   stdout?: string;
 }> => {
@@ -497,7 +514,7 @@ export const verifyRSA = async (
       `echo ${string} |
     openssl dgst -verify ${publicKeyPath} -signature ${signaturePath} -provider legacy -provider default`
     );
-    let verifyResult = '';
+    let isValid = false;
     let error = '';
     let stdout = '';
     await execPromise(
@@ -506,18 +523,18 @@ export const verifyRSA = async (
     )
       .then((res) => {
         console.log('verifyRSA:Done');
-        verifyResult = 'verifyRSA:Done';
+        isValid = true;
         stdout = res;
       })
       .catch((err) => {
         console.log('verifyRSA:Failed');
         console.log(err);
-        verifyResult = 'verifyRSA:Failed';
+        isValid = false;
         error = err;
       });
-    return { verifyResult, error, stdout };
+    return { isValid, error, stdout };
   } catch (error: any) {
-    return { verifyResult: 'verifyRSA:Failed', error: error, stdout: '' };
+    return { isValid: false, error: error, stdout: '' };
   }
 };
 
@@ -548,5 +565,29 @@ export const generateBlowfishKey = async (keyPath: string, keyLength: any = 64) 
     return { blowfishKeyPath: keyPath, generateBlowfishKeyResult, error, stdout };
   } catch (error: any) {
     return { generateBlowfishKeyResult: 'Generate Blowfish key:Failed', error: error, stdout: '' };
+  }
+};
+
+/**
+ * hash file with SHA256
+ * @param  {any} filePaths
+ * @returns {Promise<string>} hash
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const hashSHA256 = async (filePaths: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    console.log(`Hash file with SHA256: openssl dgst -sha256 ${filePaths}`);
+    const hash = await execPromise(`openssl dgst -sha256 ${filePaths}`);
+    console.log(hash);
+    //@ts-ignore
+    result = hash.toString().split('=')[1].trim();
+    console.log('Hash file with SHA256:Done');
+    return { sha256: result, error, stdout };
+  } catch (error: any) {
+    return { sha256: '', error: error, stdout: '' };
   }
 };

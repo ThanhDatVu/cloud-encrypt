@@ -1,8 +1,9 @@
 # development stage
 FROM node:14-alpine as base
 
-# add OpenSSL
+# add OpenSSL and coreutils
 RUN apk upgrade --update-cache --available && \
+    apk add coreutils && \    
     apk add openssl && \
     rm -rf /var/cache/apk/*
 

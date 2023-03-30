@@ -14,7 +14,7 @@ router.route('/encrypt').post(
 router.route('/decrypt').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.encryptBlowfish),
-  // encryptController.decrypt
+  encryptController.decryptRSA
 );
 
 

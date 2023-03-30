@@ -1,3 +1,6 @@
+import { decryptBlowfish } from './../metadata/metadata.service';
+import { exec } from 'child_process';
+import { unixTimer } from './../utils/unixTimer';
 import httpStatus from 'http-status';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
@@ -30,7 +33,7 @@ const systemPrivateKey: string = `${asymKeyFolder}private-rsa.pem`;
 //   // generate blowfish key
 //   // await keyManagementService.generateBlowfishKey(`${symKeyFile}`);
 //   const { publicFileKeyPath, sharedSecretPath, privateFileKeyPath, ecdhKeyExchangeResult } =
-//     await encryptService.ecdhKeyExchange(`${systemPublicKey}`, `${fileID}`);  
+//     await encryptService.ecdhKeyExchange(`${systemPublicKey}`, `${fileID}`);
 
 //   // encrypt file with blowfish algorithm
 //   const { stdoutEncrypt, encryptedFilePath, encryptResult } = await encryptService.encryptBlowfish(
@@ -159,7 +162,9 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   const [fileName, fileExtension] = inputFile.split('.');
   const pathToEncryptedFile = `${imagesFolder}${fileName}-encrypted.${fileExtension}`;
   const fileID = v4();
-  const fileSymKeyPath = `${symKeyFolder}${fileID}-sym-key`;
+  const fileSymKeyPath = `${symKeyFolder}${fileID}.secret`;
+
+  const startTime = await unixTimer("start Encryption algorithm");
 
   // generate blowfish key
   const { blowfishKeyPath, generateBlowfishKeyResult } = await encryptService.generateBlowfishKey(`${fileSymKeyPath}`);
@@ -171,20 +176,23 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
     pathToEncryptedFile
   );
 
-  const { result, encryptedKeyPath } = await encryptService.encryptRSA(
-    `${fileSymKeyPath}`,
-    `${systemPublicKey}`
-  );
+  // encrypt blowfish key with system public key
+  const { result, encryptedKeyPath } = await encryptService.encryptRSA(`${fileSymKeyPath}`, `${systemPublicKey}`);
+
   // hash the original file
-  const md5 = await encryptService.hashMD5(`${imagesFolder}${inputFile}`);
+  const { sha256 } = await encryptService.hashSHA256(`${imagesFolder}${inputFile}`);
 
   // sign the hash with system private key
-  const { signResult, signaturePath } = await encryptService.signRSA(md5, `${systemPrivateKey}`, fileID);
+  const { signResult, signaturePath } = await encryptService.signRSA(sha256, `${systemPrivateKey}`, fileID);
+
+  const stopTime = await unixTimer("stop Encryption algorithm");
+
+  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
 
   const metadata = await metadataService.createMetadata({
     fileName: inputFile,
     fileUuid: fileID,
-    hashValue: md5,
+    hashValue: sha256,
     signaturePath,
     encryptedFileKey: `${encryptedKeyPath}`,
     encryptedFilePath,
@@ -193,13 +201,13 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   const fileContents = await encryptService.getFilesContent({
     systemPrivateKeyContent: `${systemPrivateKey}`,
     systemPublicKeyContent: `${systemPublicKey}`,
-    fileKey: `${blowfishKeyPath}`,
+    encryptedFileContent: `${encryptedFilePath}`,
   });
-
+  
   const fileContentsHex = await encryptService.getFilesContentHex({
     signatureContent: `${signaturePath}`,
-    fileKey: `${blowfishKeyPath}`,
-    encryptedFileKey: `${encryptedKeyPath}`
+    filePrivateKeyContent: `${blowfishKeyPath}`,
+    encryptedFilePrivateKeyContent: `${encryptedKeyPath}`,
   });
 
   res.send({
@@ -209,7 +217,7 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
       stdoutEncrypt,
     },
     hash: {
-      originalHash: md5,
+      originalHash: sha256,
     },
     signRSA: {
       signResult,
@@ -221,8 +229,74 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
     },
     fileContents: {
       ...fileContents,
-      ...fileContentsHex
+      ...fileContentsHex,
     },
   });
 });
+
+// revert the encryptRSA function
+export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
+  const metadataId = req.query['metadataId'];
+  if (!metadataId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'metadataId is required');
+  }
+
+  const metadata = await metadataService.getMetadataById(new mongoose.Types.ObjectId(metadataId.toString()));
+
+  if (!metadata) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Metadata not found');
+  }
+
+  const decryptedFilePath = `${imagesFolder}${metadata.fileName}-decrypted.${metadata.fileName.split('.')[1]}`;
+  console.log('decryptedFilePath', decryptedFilePath);
+
+  const startTime = await unixTimer("start Decryption algorithm");
+
+  // decrypt blowfish key with system private key
+  const { result, decryptedKeyPath } = await encryptService.decryptRSA(`${metadata.encryptedFileKey}`, `${systemPrivateKey}`);
+
+  // decrypt file with blowfish algorithm
+  const decryptBlowfish = await encryptService.decryptBlowfish(
+    `${decryptedKeyPath}`,
+    `${metadata.encryptedFilePath}`,
+    `${decryptedFilePath}`
+  );
+
+  // hash the decrypted file
+  const { sha256 } = await encryptService.hashSHA256(decryptedFilePath);
+  // verify the signature with system public key
+  const verifyRSA = await encryptService.verifyRSA(sha256, metadata.signaturePath, `${systemPublicKey}`);
+
+  const stopTime = await unixTimer("stop Decryption algorithm");
+
+  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
   
+  const fileContents = await encryptService.getFilesContent({
+    systemPrivateKeyContent: `${systemPrivateKey}`,
+    systemPublicKeyContent: `${systemPublicKey}`,
+  });
+  
+  const fileContentsHex = await encryptService.getFilesContentHex({
+    signatureContent: `${metadata.signaturePath}`,
+    filePrivateKeyContent: `${decryptedKeyPath}`,
+    encryptedFilePrivateKeyContent: `${metadata.encryptedFileKey}`,
+  });
+
+  res.send({
+    decrypt: {
+      result: decryptBlowfish.decryptBlowfishResult,
+      decryptedFilePath,
+    },
+    hash: {
+      decryptedFilehash: sha256,
+      originalHash: metadata.hashValue,
+      isHashEqual: sha256 == metadata.hashValue,
+    },
+    verifyRSA,
+    metadata,
+    fileContents: {
+      ...fileContents,
+      ...fileContentsHex,
+    },
+  });
+});
