@@ -355,7 +355,7 @@ export const getFilesContent = async (filePaths: any) => {
     let fileContents: any = {};
     const fileContentsHandler = await Promise.all(
       Object.keys(filePaths).map(async (filePath: any) => {
-        fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]}`);
+        fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]} | head -c 1000`);
       })
       );
       return fileContents;
