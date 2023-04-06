@@ -13,6 +13,9 @@ import * as metadataService from '../metadata/metadata.service';
 // import uuid v4
 import pkg from 'uuid';
 import { is } from '@babel/types';
+import { downloadFile, uploadFile } from '../utils/spaceService';
+import { execPromise } from '../utils';
+import { clearScreenDown } from 'readline';
 const { v4 } = pkg;
 
 const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
@@ -160,11 +163,12 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
 
   // format d473b1c9-16f9-49b8-b98b-812b9983a0dd-kekw.png to d473b1c9-16f9-49b8-b98b-812b9983a0dd-kekw-encrypted.png
   const [fileName, fileExtension] = inputFile.split('.');
+  const pathToOriginalFile = `${imagesFolder}${inputFile}`;
   const pathToEncryptedFile = `${imagesFolder}${fileName}-encrypted.${fileExtension}`;
   const fileID = v4();
   const fileSymKeyPath = `${symKeyFolder}${fileID}.secret`;
 
-  const startTime = await unixTimer("start Encryption algorithm");
+  const startTime = await unixTimer('start Encryption algorithm');
 
   // generate blowfish key
   const { blowfishKeyPath, generateBlowfishKeyResult } = await encryptService.generateBlowfishKey(`${fileSymKeyPath}`);
@@ -172,7 +176,7 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   // encrypt file with blowfish algorithm
   const { stdoutEncrypt, encryptedFilePath, encryptResult } = await encryptService.encryptBlowfish(
     `${blowfishKeyPath}`,
-    `${imagesFolder}${inputFile}`,
+    `${pathToOriginalFile}`,
     pathToEncryptedFile
   );
 
@@ -185,9 +189,9 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   // sign the hash with system private key
   const { signResult, signaturePath } = await encryptService.signRSA(sha256, `${systemPrivateKey}`, fileID);
 
-  const stopTime = await unixTimer("stop Encryption algorithm");
+  const stopTime = await unixTimer('stop Encryption algorithm');
 
-  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
+  console.log('Execution time: ' + (parseInt(stopTime) - parseInt(startTime)) + 'ms');
 
   const metadata = await metadataService.createMetadata({
     fileName: inputFile,
@@ -203,12 +207,22 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
     systemPublicKeyContent: `${systemPublicKey}`,
     encryptedFileContent: `${encryptedFilePath}`,
   });
-  
+
   const fileContentsHex = await encryptService.getFilesContentHex({
     signatureContent: `${signaturePath}`,
     filePrivateKeyContent: `${blowfishKeyPath}`,
     encryptedFilePrivateKeyContent: `${encryptedKeyPath}`,
   });
+
+  // upload the encrypted file to spaces and delete it from the server
+  const uploadFileToSpace = await uploadFile(pathToEncryptedFile);
+
+  const hash = await execPromise(`openssl dgst -sha256 ${pathToEncryptedFile}`)
+    .then((result) => {
+      console.log('hash', result);
+      return result;
+    })
+  const deleteFileFromServer = await execPromise(`rm ${pathToEncryptedFile}`);
 
   res.send({
     metadata,
@@ -250,10 +264,16 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   const decryptedFilePath = `${imagesFolder}${metadata.fileName}-decrypted.${metadata.fileName.split('.')[1]}`;
   console.log('decryptedFilePath', decryptedFilePath);
 
-  const startTime = await unixTimer("start Decryption algorithm");
+  // download the encrypted file from spaces and save it to the server
+  const downloadFileFromSpace = await downloadFile(metadata.encryptedFilePath);
+
+  const startTime = await unixTimer('start Decryption algorithm');
 
   // decrypt blowfish key with system private key
-  const { result, decryptedKeyPath } = await encryptService.decryptRSA(`${metadata.encryptedFileKey}`, `${systemPrivateKey}`);
+  const { result, decryptedKeyPath } = await encryptService.decryptRSA(
+    `${metadata.encryptedFileKey}`,
+    `${systemPrivateKey}`
+  );
 
   // decrypt file with blowfish algorithm
   const decryptBlowfish = await encryptService.decryptBlowfish(
@@ -267,15 +287,15 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   // verify the signature with system public key
   const verifyRSA = await encryptService.verifyRSA(sha256, metadata.signaturePath, `${systemPublicKey}`);
 
-  const stopTime = await unixTimer("stop Decryption algorithm");
+  const stopTime = await unixTimer('stop Decryption algorithm');
 
-  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
-  
+  console.log('Execution time: ' + (parseInt(stopTime) - parseInt(startTime)) + 'ms');
+
   const fileContents = await encryptService.getFilesContent({
     systemPrivateKeyContent: `${systemPrivateKey}`,
     systemPublicKeyContent: `${systemPublicKey}`,
   });
-  
+
   const fileContentsHex = await encryptService.getFilesContentHex({
     signatureContent: `${metadata.signaturePath}`,
     filePrivateKeyContent: `${decryptedKeyPath}`,
