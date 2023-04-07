@@ -63,34 +63,38 @@ export const encryptBlowfish = async (
  * @params {string} outputFile: file to be saved
  * @returns {Promise<string>}
  */
-export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<{
-  decryptBlowfishResult: string,
-  decryptedFilePath: string,
-  error?: string
-  decryptStdout?: string
+export const decryptBlowfish = async (
+  keyFile: string,
+  inputFile: string,
+  outputFile: string
+): Promise<{
+  decryptBlowfishResult: string;
+  decryptedFilePath: string;
+  error?: string;
+  decryptStdout?: string;
 }> => {
   try {
-  let decryptBlowfishResult = '';
-  console.log(
-    `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
-  );
-  await execPromise(
-    `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
-  )
-    .then((res) => {
-      console.log('decryptBlowfish:Done');
-      console.log('decryptBlowfish', res);
-      decryptBlowfishResult = 'decryptBlowfish:Done';
-    })
-    .catch((err) => {
-      console.log('decryptBlowfish:Failed');
-      console.log(err);
-      decryptBlowfishResult = 'decryptBlowfish:Failed';
-    });
-  return {
-    decryptBlowfishResult,
-    decryptedFilePath: outputFile,
-  };
+    let decryptBlowfishResult = '';
+    console.log(
+      `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
+    );
+    await execPromise(
+      `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
+    )
+      .then((res) => {
+        console.log('decryptBlowfish:Done');
+        console.log('decryptBlowfish', res);
+        decryptBlowfishResult = 'decryptBlowfish:Done';
+      })
+      .catch((err) => {
+        console.log('decryptBlowfish:Failed');
+        console.log(err);
+        decryptBlowfishResult = 'decryptBlowfish:Failed';
+      });
+    return {
+      decryptBlowfishResult,
+      decryptedFilePath: outputFile,
+    };
   } catch (error) {
     console.log(error);
     return {
@@ -357,16 +361,16 @@ export const getFilesContent = async (filePaths: any) => {
       Object.keys(filePaths).map(async (filePath: any) => {
         fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]} | head -c 1000`);
       })
-      );
-      return fileContents;
-    } catch (error: any) {
-      console.log(error);
-      return { result: '', error: error, stdout: '' };
-    }
-  };
-  
-  //get file content in hex format with xxd
-  export const getFilesContentHex = async (filePaths: any) => {
+    );
+    return fileContents;
+  } catch (error: any) {
+    console.log(error);
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+//get file content in hex format with xxd
+export const getFilesContentHex = async (filePaths: any) => {
   try {
     let fileContents: any = {};
     const fileContentsHandler = await Promise.all(
@@ -398,7 +402,7 @@ export const encryptRSA = async (filePaths: any, publicKeyPath: any) => {
     console.log(
       `Encrypt file: openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`
     );
-    
+
     await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`)
       .then((res) => {
         console.log('Encrypt file:Done');
@@ -447,7 +451,7 @@ export const decryptRSA = async (filePaths: any, privateKeyPath: any) => {
         console.log(err);
         error = err;
       });
-    return { decryptedKeyPath , result, error, stdout };
+    return { decryptedKeyPath, result, error, stdout };
   } catch (error: any) {
     return { result: '', error: error, stdout: '' };
   }
@@ -589,5 +593,68 @@ export const hashSHA256 = async (filePaths: any) => {
     return { sha256: result, error, stdout };
   } catch (error: any) {
     return { sha256: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * copy a file a number of times
+ * @param  {any} filePaths
+ * @param  {any} numberOfCopies
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const copyFile = async (filePaths: any, numberOfCopies: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    //split the file path to get the file name and extension
+    const fileName = filePaths.split('.')[0];
+    const fileExtension = filePaths.split('.')[1];
+    //generate a array of number from 1 to numberOfCopies
+    const fileNameToCopy = Array.from(Array(numberOfCopies).keys()).map((i) => `${fileName}_${i + 1}.${fileExtension}`);
+    console.log(fileNameToCopy);
+    // write a bash script to copy the file
+
+    // promise all to copy the file
+    const a = `i=1; while [ "$i" -le ${numberOfCopies} ]; do cp ${filePaths} ${fileName}_"$i".${fileExtension};  i=$((i+1));  done`
+    await execPromise(a)
+      .then((res) => {
+        console.log('Copy file:Done');
+        console.log(res);
+      })
+      .catch((err) => {
+        console.log('Copy file:Failed');
+        console.log(err);
+      });
+
+    return { fileNames: fileNameToCopy, error, stdout };
+  } catch (error: any) {
+    console.log(error);
+    return { fileNames: [], error: error, stdout: '' };
+  }
+};
+
+/**
+ * remove a number of files
+ * @param  {any} filePaths array of file paths
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const removeFiles = async (filePaths: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    // promise all to remove the file
+    await Promise.all(
+      filePaths.map((filePath: any) => {
+        console.log(`Remove file: rm ${filePath}`);
+        return execPromise(`rm ${filePath}`);
+      })
+    );
+    return { result, error, stdout };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
   }
 };

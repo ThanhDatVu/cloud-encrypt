@@ -320,3 +320,35 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
+// set up test to encrypt 50 files using only encryptRSA function
+export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
+  const startTime = await unixTimer("start Encryption algorithm");
+  const filePath = `${imagesFolder}input.png`;
+  const { fileNames } = await encryptService.copyFile( filePath , 50);
+
+  console.log('fileNames', fileNames);
+
+  const encryptPromises = fileNames.map(async (fileName: any) => {
+    const encryptRSA = await encryptService.encryptRSA(fileName, `${systemPublicKey}`);
+    return encryptRSA;
+  });
+
+  console.log('encryptPromises', encryptPromises);
+
+  const encryptResults = await Promise.all(encryptPromises);
+
+  console.log('encryptResults', encryptResults);
+
+  const endCopy = await unixTimer("stop Encryption algorithm");
+  const remove = await encryptService.removeFiles(fileNames);
+
+  const stopTime = await unixTimer("stop Encryption algorithm");
+
+  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
+  console.log("Copy Execution time: " + ( parseInt(endCopy) - parseInt(startTime) ) + "ms");
+  console.log("Remove Execution time: " + ( parseInt(stopTime) - parseInt(endCopy) ) + "ms");
+
+  
+});
+
