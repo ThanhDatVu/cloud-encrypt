@@ -24,6 +24,9 @@ const imagesFolder: string = process.env['IMAGES_FOLDER'] || 'images';
 const systemPublicKey: string = `${asymKeyFolder}public-rsa.pem`;
 const systemPrivateKey: string = `${asymKeyFolder}private-rsa.pem`;
 
+const systemPublicKey4096: string = `${asymKeyFolder}public-rsa4096.pem`;
+const systemPrivateKey4096: string = `${asymKeyFolder}private-rsa4096.pem`;
+
 // export const encrypt = catchAsync(async (req: Request, res: Response) => {
 //   const inputFile = req.body.inputFile || 'input.png';
 //   // const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
@@ -324,30 +327,48 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
 // set up test to encrypt 50 files using only encryptRSA function
 export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
   const startTime = await unixTimer("start Encryption algorithm");
-  const filePath = `${imagesFolder}input.png`;
+  const filePath = `${imagesFolder}input-4000bit`;
   const { fileNames } = await encryptService.copyFile( filePath , 50);
 
-  console.log('fileNames', fileNames);
 
+  const endCopy = await unixTimer("stop Encryption algorithm");
   const encryptPromises = fileNames.map(async (fileName: any) => {
-    const encryptRSA = await encryptService.encryptRSA(fileName, `${systemPublicKey}`);
+    const encryptRSA = await encryptService.encryptRSATest(fileName, `${systemPublicKey4096}`);
     return encryptRSA;
   });
 
-  console.log('encryptPromises', encryptPromises);
-
   const encryptResults = await Promise.all(encryptPromises);
+  
+  
+  const encryptTimes = encryptResults.map((encryptResult: any) => encryptResult.encryptTime);
+  const avgEncryptTime = encryptTimes.reduce((a: any, b: any) => a + b, 0) / encryptResults.length;
 
-  console.log('encryptResults', encryptResults);
+  console.log('encryptResults', encryptTimes);
+  console.log('encrypt average time', encryptTimes.reduce((a: any, b: any) => a + b, 0) / encryptResults.length);
 
-  const endCopy = await unixTimer("stop Encryption algorithm");
-  const remove = await encryptService.removeFiles(fileNames);
+
+
+
+  const startRemove = await unixTimer("stop Encryption algorithm");
+  const remove = await encryptService.removeFiles(
+    [
+      ...fileNames,
+      ...encryptResults.map((encryptResult: any) => encryptResult.encryptedKeyPath),
+    ]
+  );
 
   const stopTime = await unixTimer("stop Encryption algorithm");
 
-  console.log("Execution time: " + ( parseInt(stopTime) - parseInt(startTime) ) + "ms");
+  console.log("Encrypt Execution time: " + ( parseInt(startRemove) - parseInt(endCopy) ) + "ms");
   console.log("Copy Execution time: " + ( parseInt(endCopy) - parseInt(startTime) ) + "ms");
-  console.log("Remove Execution time: " + ( parseInt(stopTime) - parseInt(endCopy) ) + "ms");
+  console.log("Remove Execution time: " + ( parseInt(stopTime) - parseInt(startRemove) ) + "ms");
+
+  res.send({
+    message: "success",
+    encryptTimes,
+    avgEncryptTime,
+
+  });
 
   
 });

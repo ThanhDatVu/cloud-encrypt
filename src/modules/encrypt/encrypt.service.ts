@@ -8,6 +8,7 @@ import { exec, execSync } from 'child_process';
 import { execPromise } from '../utils';
 import fs from 'fs';
 import { object } from 'joi';
+import unixTimer from '../utils/unixTimer';
 
 /**
  * Use Blowfish encryption to encrypt a file with key from a file in openssl 3.0.0
@@ -391,7 +392,7 @@ export const getFilesContentHex = async (filePaths: any) => {
  * @param  {any} filePaths
  * @param  {any} publicKeyPath
  */
-export const encryptRSA = async (filePaths: any, publicKeyPath: any) => {
+ export const encryptRSA = async (filePaths: any, publicKeyPath: any) => {
   try {
     let result = '';
     let error = '';
@@ -610,17 +611,16 @@ export const copyFile = async (filePaths: any, numberOfCopies: any) => {
     let stdout = '';
     //split the file path to get the file name and extension
     const fileName = filePaths.split('.')[0];
-    const fileExtension = filePaths.split('.')[1];
     //generate a array of number from 1 to numberOfCopies
-    const fileNameToCopy = Array.from(Array(numberOfCopies).keys()).map((i) => `${fileName}_${i + 1}.${fileExtension}`);
+    const fileNameToCopy = Array.from(Array(numberOfCopies).keys()).map((i) => `${fileName}_${i + 1}`);
     console.log(fileNameToCopy);
     // write a bash script to copy the file
 
     // promise all to copy the file
-    const a = `i=1; while [ "$i" -le ${numberOfCopies} ]; do cp ${filePaths} ${fileName}_"$i".${fileExtension};  i=$((i+1));  done`
+    const a = `i=1; while [ "$i" -le ${numberOfCopies} ]; do cp ${filePaths} ${fileName}_"$i";  i=$((i+1));  done`
     await execPromise(a)
       .then((res) => {
-        console.log('Copy file:Done');
+        // console.log('Copy file:Done');
         console.log(res);
       })
       .catch((err) => {
@@ -649,11 +649,103 @@ export const removeFiles = async (filePaths: any) => {
     // promise all to remove the file
     await Promise.all(
       filePaths.map((filePath: any) => {
-        console.log(`Remove file: rm ${filePath}`);
+        // console.log(`Remove file: rm ${filePath}`);
         return execPromise(`rm ${filePath}`);
       })
     );
     return { result, error, stdout };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+
+
+
+
+/**
+ * encrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} publicKeyPath
+ */
+ export const encryptRSATest = async (filePaths: any, publicKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedKeyPath = `${fileName}-encrypted.${fileExtension || ''}`;
+    
+    //timer start using unix time util
+    const start = await unixTimer();
+
+
+    // console.log(
+    //   `Encrypt file: openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`
+    // );
+    await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`)
+      .then((res) => {
+        // console.log('Encrypt file:Done');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //timer end
+    const stop = await unixTimer();
+
+    const encryptTime = parseInt(stop) - parseInt(start);
+
+    return { encryptedKeyPath, result, error, stdout, encryptTime};
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * decrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} privateKeyPath
+ * @returns {Promise<string>} decrypted file path
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const decryptRSATest = async (filePaths: any, privateKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedKeyPath = `${fileName}-decrypted.${fileExtension || ''}`;
+
+    //timer start using unix time util
+    const start = await unixTimer();
+
+    // console.log(
+    //   `Decrypt file: openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedKeyPath}`
+    // );
+    await execPromise(`openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedKeyPath}`)
+      .then((res) => {
+        // console.log('Decrypt file:Done');
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //timer end
+    const stop = await unixTimer();
+
+    const decryptTime = parseInt(stop) - parseInt(start);
+
+    return { decryptedKeyPath, result, error, stdout, decryptTime };
   } catch (error: any) {
     return { result: '', error: error, stdout: '' };
   }
