@@ -23,6 +23,11 @@ router.route('/encryptRSA50').post(
   encryptController.encryptRSA50
 );
 
+router.route('/encryptHybrid50').post(
+  // auth('manageEncrypts'),
+  // validate(encryptValidation.encryptBlowfish),
+  encryptController.encryptHybrid50
+);
 
 export default router;
 
