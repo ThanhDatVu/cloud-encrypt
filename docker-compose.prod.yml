@@ -9,7 +9,7 @@ services:
       - ./keys:/usr/prod/app/keys
       - ./signatures:/usr/prod/app/signatures
       - .env:/usr/prod/app/.env
-      - ./images_test:/usr/src/app/images_test
+      - ./images_test:/usr/prod/app/images_test
     build: 
       target: production
     command: yarn start
