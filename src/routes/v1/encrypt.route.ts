@@ -17,16 +17,22 @@ router.route('/decrypt').post(
   encryptController.decryptRSA
 );
 
-router.route('/encryptRSA50').post(
+router.route('/encryptRSATest').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptRSA50
 );
 
-router.route('/encryptHybrid50').post(
+router.route('/encryptHybridTest').post(
   // auth('manageEncrypts'),
   // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptHybrid50
+);
+
+router.route('/encryptBlowfishTest').post(
+  // auth('manageEncrypts'),
+  // validate(encryptValidation.encryptBlowfish),
+  encryptController.encryptBlowfish50
 );
 
 export default router;

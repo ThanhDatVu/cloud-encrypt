@@ -13,6 +13,7 @@ services:
       - ./keys:/usr/src/app/keys
       - ./signatures:/usr/src/app/signatures
       - .env:/usr/src/app/.env
+      - ./images_test:/usr/src/app/images_test
       - ${PWD}/nodemon.json:/usr/src/app/nodemon.json
     command: sleep 3600
 
