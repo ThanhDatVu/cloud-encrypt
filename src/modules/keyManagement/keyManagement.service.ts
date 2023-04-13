@@ -97,7 +97,7 @@ export const deleteKeyManagementById = async (keyManagementId: mongoose.Types.Ob
  * @param {String} fileName: name of the file to save the key
  * @returns {Promise<string>}
  */
-export const generateBlowfishKey = async (fileName: String = 'blowfish.keyy'): Promise<string> => {
+export const generateBlowfishKey = async (fileName: String = 'blowfish.key'): Promise<string> => {
   let result = '';
   const symKeyFolder = process.env['SYM_KEY_FOLDER']; 
   // implement emeral ecdh to generate a new Blowfish key
