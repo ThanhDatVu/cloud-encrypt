@@ -15,6 +15,7 @@ import pkg from 'uuid';
 import { is } from '@babel/types';
 import { downloadFile, uploadFile } from '../utils/spaceService';
 import { execPromise } from '../utils';
+import { keyManagementService } from '../keyManagement';
 const { v4 } = pkg;
 
 const symKeyFolder: string = process.env['SYM_KEY_FOLDER'] || 'sym_key';
@@ -327,6 +328,10 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
 export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
   const fileSize = req.body.fileSize > 4000 ? 4000 : req.body.fileSize || 4000;
   const fileNumber = req.body.fileNumber > 100 ? 100 : req.body.fileNumber || 50;
+  const rsaKeySize = req.body.rsaKeySize > 4096 ? 4096 : req.body.rsaKeySize || 4096;
+  const generatedRSAKey = await keyManagementService.generateRSAKeyPair(rsaKeySize);
+  const rsaPrivateKeyPath = generatedRSAKey.privateKeyPath;
+  const rsaPublicKeyPath = generatedRSAKey.publicKeyPath;
   const uniqueId = v4();
   const startCopy = await unixTimer('start copy file');
   // arrange
@@ -347,7 +352,7 @@ export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
   const startEncrypt = await unixTimer('start encrypt file');
 
   const encryptPromises = fileNames.map(async (fileName: any) => {
-    const encryptRSA = await encryptService.encryptRSATest(fileName, `${systemPublicKey4096}`);
+    const encryptRSA = await encryptService.encryptRSATest(fileName, `${rsaPublicKeyPath}`);
     return encryptRSA;
   });
 
@@ -366,7 +371,7 @@ export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
   const startDecrypt = await unixTimer('start decrypt file');
 
   const decryptPromises = encryptResults.map(async (encryptResult: any) => {
-    const decryptRSA = await encryptService.decryptRSATest(encryptResult.encryptedFilePath, `${systemPrivateKey4096}`);
+    const decryptRSA = await encryptService.decryptRSATest(encryptResult.encryptedFilePath, `${rsaPrivateKeyPath}`);
     return decryptRSA;
   });
 
@@ -417,12 +422,23 @@ export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
 
 // set up test to encrypt 50 files using hybrid encryption
 export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) => {
+  // 1. Arrange
+  // 1.1. generate keys match "rsaKeySize" and "blowfishKeySize"
+  const blowfishKeySize = req.body.blowfishKeySize > 256 ? 256 : req.body.blowfishKeySize || 256;
+  const rsaKeySize = req.body.rsaKeySize > 4096 ? 4096 : req.body.rsaKeySize || 4096;
+
+  const generatedBlowfishKey = await keyManagementService.generateBlowfishKey(blowfishKeySize);
+  const blowfishKeyPath = generatedBlowfishKey.keyPath;
+
+  const generatedRSAKey = await keyManagementService.generateRSAKeyPair(rsaKeySize);
+  const rsaPublicKeyPath = generatedRSAKey.publicKeyPath;
+  const rsaPrivateKeyPath = generatedRSAKey.privateKeyPath;
+  // 1.2. generate file match "fileSize"
   const fileSize = req.body.fileSize > 80000000 ? 80000000 : req.body.fileSize || 80000000;
   const fileNumber = req.body.fileNumber > 100 ? 100 : req.body.fileNumber || 50;
   console.log('fileSize', fileSize);
 
   const startCopy = await unixTimer('start copy file');
-  // arrange
   const uniqueId = v4();
   const filePath = `${imagesFolderTest}input-${fileSize}bit-${uniqueId}`;
   const generateFile = await execPromise(`fallocate -l ${fileSize / 8} ${filePath}`);
@@ -430,16 +446,16 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
     console.log('file size', result);
     return result;
   });
+  // 1.3. copy file to match "fileNumber"
   const { fileNames } = await encryptService.copyFile(filePath, fileNumber);
   const endCopy = await unixTimer('stop copy file');
 
-  // act
-  // 1. encrypt the file with RSA algorithm
-
+  // 2. Act
+  // 2.1. encrypt the file with blowfish algorithm and the blowfish key with RSA algorithm
   const startEncrypt = await unixTimer('start encrypt file');
 
   const encryptPromises = fileNames.map(async (fileName: any) => {
-    const encryptRSA = await encryptService.encryptHybridTest(fileName, `${systemPublicKey4096}`, `${blowfishKey}`);
+    const encryptRSA = await encryptService.encryptHybridTest(fileName, `${rsaPublicKeyPath}`, `${blowfishKeyPath}`);
     return encryptRSA;
   });
 
@@ -464,14 +480,14 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
     avgFileEncryptTime,
   });
 
-  // 2. decrypt the test files
-
+  // 3. decrypt the test files
+  // 3.1. decrypt the key with RSA algorithm and decrypt the file with blowfish algorithm
   const startDecrypt = await unixTimer('start decrypt file');
 
   const decryptPromises = encryptResults.map(async (encryptResult: any) => {
     const decryptRSA = await encryptService.decryptHybridTest(
       encryptResult.encryptedFilePath,
-      `${systemPrivateKey4096}`,
+      `${rsaPrivateKeyPath}`,
       encryptResult.encryptedBlowfishKeyPath
     );
     return decryptRSA;
@@ -501,7 +517,7 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
 
   const startRemove = await unixTimer('start remove file');
 
-  // remove test files
+  // 4. remove the test files
   const remove = await encryptService.removeFiles([
     ...fileNames,
     ...encryptResults.map((encryptResult: any) => encryptResult.encryptedFilePath),
@@ -512,7 +528,7 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
   ]);
 
   const stopTime = await unixTimer('stop remove file');
-
+  // 5. Assert
   //calculate throughput in MB/s with fileSize in bit and time in ms
   const encryptThroughput = Math.round(((fileNumber * fileSize) / avgEncryptTime / 1000) * 100) / 100;
   const decryptThroughput = Math.round(((fileNumber * fileSize) / avgDecryptTime / 1000) * 100) / 100;
@@ -550,12 +566,18 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
 
 // set up test to encrypt 50 files using blowfish encryption
 export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) => {
+  // 1. Arrange
+  // 1.1. generate blowfish key match "keySize"
+  const { blowfishKeySize } = req.body || 128;
+  const generatedBlowfishKey = await keyManagementService.generateBlowfishKey(blowfishKeySize);
+  const blowfishKeyPath = generatedBlowfishKey.keyPath;
+
   const fileSize = req.body.fileSize > 80000000 ? 80000000 : req.body.fileSize || 80000000;
   const fileNumber = req.body.fileNumber > 100 ? 100 : req.body.fileNumber || 50;
   console.log('fileSize', fileSize);
 
   const startCopy = await unixTimer('start copy file');
-  // arrange
+  // 1.2. generate a file with "fileSize" and copy it to "fileNumber" files
   const uniqueId = v4();
   const filePath = `${imagesFolderTest}input-${fileSize}bit-${uniqueId}`;
   const generateFile = await execPromise(`fallocate -l ${fileSize / 8} ${filePath}`);
@@ -566,13 +588,11 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
   const { fileNames } = await encryptService.copyFile(filePath, fileNumber);
   const endCopy = await unixTimer('stop copy file');
 
-  // act
-  // 1. encrypt the file with RSA algorithm
-
+  // 2. encrypt the test files
   const startEncrypt = await unixTimer('start encrypt file');
 
   const encryptPromises = fileNames.map(async (fileName: any) => {
-    const encryptBlowfish = await encryptService.encryptBlowfishTest(fileName, `${blowfishKey}`);
+    const encryptBlowfish = await encryptService.encryptBlowfishTest(fileName, `${blowfishKeyPath}`);
     return encryptBlowfish;
   });
 
@@ -584,12 +604,12 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
 
   console.log('encrypt times', encryptTimes);
 
-  // 2. decrypt the test files
+  // 3. decrypt the test files
 
   const startDecrypt = await unixTimer('start decrypt file');
 
   const decryptPromises = encryptResults.map(async (encryptResult: any) => {
-    const decryptBlowfish = await encryptService.decryptBlowfishTest(encryptResult.encryptedFilePath, `${blowfishKey}`);
+    const decryptBlowfish = await encryptService.decryptBlowfishTest(encryptResult.encryptedFilePath, `${blowfishKeyPath}`);
     return decryptBlowfish;
   });
 
@@ -607,8 +627,8 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
   });
 
   const startRemove = await unixTimer('start remove file');
-
-  // remove test files
+  
+  // 4. remove the test files
   const remove = await encryptService.removeFiles(
     [
       ...fileNames,
@@ -621,6 +641,7 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
 
   const stopTime = await unixTimer('stop remove file');
 
+  // 5. Assert
   //calculate throughput in MB/s with fileSize in bit and time in ms
   const encryptThroughput = Math.round(((fileNumber * fileSize) / avgEncryptTime / 1000) * 100) / 100;
   const decryptThroughput = Math.round(((fileNumber * fileSize) / avgDecryptTime / 1000) * 100) / 100;

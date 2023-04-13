@@ -650,7 +650,8 @@ export const removeFiles = async (filePaths: any, folderPath?: any) => {
     let stdout = '';
     //
     if (folderPath) {
-      await execPromise(`find ${folderPath} -type f ! -name 'input.png' -delete`)
+      await execPromise(`find ${folderPath} -type f ! -name 'input.png' ! -name '.gitignore' -delete
+      `)
         .then((res) => {
           // console.log('Copy file:Done');
           console.log(res);
@@ -693,7 +694,7 @@ export const encryptRSATest = async (filePaths: any, publicKeyPath: any) => {
     // await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath}`)
     await execPromise(` date +%s%3N && openssl rsautl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath} && date +%s%3N`)
       .then((res) => {
-        console.log('Encrypt file:RSA', res);
+        // console.log('Encrypt file:RSA', res);
         [start, stop] = res.split('\n');
         stdout = res;
         result = 'Encrypt file:Done';

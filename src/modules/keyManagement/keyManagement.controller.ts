@@ -8,8 +8,8 @@ import { IOptions } from '../paginate/paginate';
 import * as keyManagementService from './keyManagement.service';
 
 export const generateBlowfishKey = catchAsync(async (req: Request, res: Response) => {
-  req = req;
-  const result = await keyManagementService.generateBlowfishKey();
+  const { keySize } = req.body;
+  const result = await keyManagementService.generateBlowfishKey(keySize);
   res.send(result);
 });
 
@@ -20,8 +20,8 @@ export const generateECDSAKey = catchAsync(async (req: Request, res: Response) =
 });
 
 export const generateRSAKey = catchAsync(async (req: Request, res: Response) => {
-  req = req;
-  const result = await keyManagementService.generateRSAKeyPair();
+  const { keySize } = req.body;
+  const result = await keyManagementService.generateRSAKeyPair(keySize);
   res.send(result);
 });
 
