@@ -692,7 +692,7 @@ export const encryptRSATest = async (filePaths: any, publicKeyPath: any) => {
 
 
     // await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath}`)
-    await execPromise(` date +%s%3N && openssl rsautl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath} && date +%s%3N`)
+    await execPromise(` date +%s%3N && openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath} && date +%s%3N`)
       .then((res) => {
         // console.log('Encrypt file:RSA', res);
         [start, stop] = res.split('\n');

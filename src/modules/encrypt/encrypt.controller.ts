@@ -25,8 +25,6 @@ const imagesFolderTest: string = process.env['IMAGES_FOLDER_TEST'] || 'images_te
 const systemPublicKey: string = `${asymKeyFolder}public-rsa.pem`;
 const systemPrivateKey: string = `${asymKeyFolder}private-rsa.pem`;
 
-const systemPublicKey4096: string = `${asymKeyFolder}public-rsa4096.pem`;
-const systemPrivateKey4096: string = `${asymKeyFolder}private-rsa4096.pem`;
 const blowfishKey = `${symKeyFolder}blowfish.key`;
 // export const encrypt = catchAsync(async (req: Request, res: Response) => {
 //   const inputFile = req.body.inputFile || 'input.png';
@@ -398,14 +396,17 @@ export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {
 
   // calculate throughput in MB/s round to 2 decimal places
 
-  console.log('Encrypt Execution time: ' + (parseInt(endEncrypt) - parseInt(startEncrypt)) + 'ms');
-  console.log('Decrypt Execution time: ' + (parseInt(endDecrypt) - parseInt(startDecrypt)) + 'ms');
+  const encryptTime = parseInt(endEncrypt) - parseInt(startEncrypt);
+  const decryptTime = parseInt(endDecrypt) - parseInt(startDecrypt);
+
+  console.log('Encrypt Execution time: ' + encryptTime + 'ms');
+  console.log('Decrypt Execution time: ' + decryptTime + 'ms');
   console.log('Copy Execution time: ' + (parseInt(endCopy) - parseInt(startCopy)) + 'ms');
   console.log('Remove Execution time: ' + (parseInt(stopTime) - parseInt(startRemove)) + 'ms');
 
   //calculate throughput in MB/s with fileSize in bit and time in ms
-  const encryptThroughput = Math.round(((fileNumber * fileSize) / avgEncryptTime / 1000) * 100) / 100;
-  const decryptThroughput = Math.round(((fileNumber * fileSize) / avgDecryptTime / 1000) * 100) / 100;
+  const encryptThroughput = Math.round(((fileNumber * fileSize) / encryptTime / 1000) * 100) / 100;
+  const decryptThroughput = Math.round(((fileNumber * fileSize) / decryptTime / 1000) * 100) / 100;
 
   res.send({
     message: 'success',
@@ -529,17 +530,21 @@ export const encryptHybrid50 = catchAsync(async (req: Request, res: Response) =>
 
   const stopTime = await unixTimer('stop remove file');
   // 5. Assert
+
+  const encryptTime = parseInt(endEncrypt) - parseInt(startEncrypt);
+  const decryptTime = parseInt(endDecrypt) - parseInt(startDecrypt);
+
   //calculate throughput in MB/s with fileSize in bit and time in ms
-  const encryptThroughput = Math.round(((fileNumber * fileSize) / avgEncryptTime / 1000) * 100) / 100;
-  const decryptThroughput = Math.round(((fileNumber * fileSize) / avgDecryptTime / 1000) * 100) / 100;
+  const encryptThroughput = Math.round(((fileNumber * fileSize) / encryptTime / 1000) * 100) / 100;
+  const decryptThroughput = Math.round(((fileNumber * fileSize) / decryptTime / 1000) * 100) / 100;
 
   console.table({
     encryptThroughput,
     decryptThroughput,
   });
 
-  console.log('Encrypt Execution time: ' + (parseInt(endEncrypt) - parseInt(startEncrypt)) + 'ms');
-  console.log('Decrypt Execution time: ' + (parseInt(endDecrypt) - parseInt(startDecrypt)) + 'ms');
+  console.log('Encrypt Execution time: ' + encryptTime + 'ms');
+  console.log('Decrypt Execution time: ' + decryptTime + 'ms');
   console.log('Copy Execution time: ' + (parseInt(endCopy) - parseInt(startCopy)) + 'ms');
   console.log('Remove Execution time: ' + (parseInt(stopTime) - parseInt(startRemove)) + 'ms');
 
@@ -642,18 +647,21 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
   const stopTime = await unixTimer('stop remove file');
 
   // 5. Assert
+
+  const encryptTime = parseInt(endEncrypt) - parseInt(startEncrypt);
+  const decryptTime = parseInt(endDecrypt) - parseInt(startDecrypt);
   //calculate throughput in MB/s with fileSize in bit and time in ms
-  const encryptThroughput = Math.round(((fileNumber * fileSize) / avgEncryptTime / 1000) * 100) / 100;
-  const decryptThroughput = Math.round(((fileNumber * fileSize) / avgDecryptTime / 1000) * 100) / 100;
+  const encryptThroughput = Math.round(((fileNumber * fileSize) / encryptTime / 1000) * 100) / 100;
+  const decryptThroughput = Math.round(((fileNumber * fileSize) / decryptTime / 1000) * 100) / 100;
 
   console.table({
     encryptThroughput,
     decryptThroughput,
   });
 
-  console.log('Encrypt Execution time: ' + (parseInt(endEncrypt) - parseInt(startEncrypt)) + 'ms');
+  console.log('Encrypt Execution time: ' + encryptTime + 'ms');
 
-  console.log('Decrypt Execution time: ' + (parseInt(endDecrypt) - parseInt(startDecrypt)) + 'ms');
+  console.log('Decrypt Execution time: ' + decryptTime + 'ms');
 
   console.log('Copy Execution time: ' + (parseInt(endCopy) - parseInt(startCopy)) + 'ms');
 
