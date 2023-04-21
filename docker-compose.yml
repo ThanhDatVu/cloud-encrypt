@@ -5,6 +5,9 @@ services:
     container_name: mongo
     image: mongo:4.2.1-bionic
     restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
     ports:
       - "27017:27017"
     networks:
@@ -22,7 +25,7 @@ services:
     ports:
       - ${PORT}:${PORT}
     environment: 
-      - MONGODB_URL=mongodb://mongo:27017/cloud-encrypt
+      - MONGODB_URL=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongo:27017/cloud-encrypt?retryWrites=true&w=majority&directConnection=true&authSource=admin
       - CLIENT_URL=${CLIENT_URL}
     links: 
       - mongo  
