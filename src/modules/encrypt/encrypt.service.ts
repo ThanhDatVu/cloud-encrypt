@@ -8,6 +8,11 @@ import { exec, execSync } from 'child_process';
 import { execPromise } from '../utils';
 import fs from 'fs';
 import { object } from 'joi';
+import unixTimer from '../utils/unixTimer';
+import { performance, PerformanceObserver } from 'perf_hooks';
+
+const observer = new PerformanceObserver((items) => items.getEntries().forEach((entry) => console.log(entry)));
+observer.observe({ entryTypes: ['measure'] });
 
 /**
  * Use Blowfish encryption to encrypt a file with key from a file in openssl 3.0.0
@@ -63,34 +68,38 @@ export const encryptBlowfish = async (
  * @params {string} outputFile: file to be saved
  * @returns {Promise<string>}
  */
-export const decryptBlowfish = async (keyFile: string, inputFile: string, outputFile: string): Promise<{
-  decryptBlowfishResult: string,
-  decryptedFilePath: string,
-  error?: string
-  decryptStdout?: string
+export const decryptBlowfish = async (
+  keyFile: string,
+  inputFile: string,
+  outputFile: string
+): Promise<{
+  decryptBlowfishResult: string;
+  decryptedFilePath: string;
+  error?: string;
+  decryptStdout?: string;
 }> => {
   try {
-  let decryptBlowfishResult = '';
-  console.log(
-    `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
-  );
-  await execPromise(
-    `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
-  )
-    .then((res) => {
-      console.log('decryptBlowfish:Done');
-      console.log('decryptBlowfish', res);
-      decryptBlowfishResult = 'decryptBlowfish:Done';
-    })
-    .catch((err) => {
-      console.log('decryptBlowfish:Failed');
-      console.log(err);
-      decryptBlowfishResult = 'decryptBlowfish:Failed';
-    });
-  return {
-    decryptBlowfishResult,
-    decryptedFilePath: outputFile,
-  };
+    let decryptBlowfishResult = '';
+    console.log(
+      `Blowfish decrypt command: openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
+    );
+    await execPromise(
+      `openssl enc -d -bf -in ${inputFile} -out ${outputFile} -k $(xxd -p ${keyFile} | tr -d '\n') -provider legacy -provider default`
+    )
+      .then((res) => {
+        console.log('decryptBlowfish:Done');
+        console.log('decryptBlowfish', res);
+        decryptBlowfishResult = 'decryptBlowfish:Done';
+      })
+      .catch((err) => {
+        console.log('decryptBlowfish:Failed');
+        console.log(err);
+        decryptBlowfishResult = 'decryptBlowfish:Failed';
+      });
+    return {
+      decryptBlowfishResult,
+      decryptedFilePath: outputFile,
+    };
   } catch (error) {
     console.log(error);
     return {
@@ -357,16 +366,16 @@ export const getFilesContent = async (filePaths: any) => {
       Object.keys(filePaths).map(async (filePath: any) => {
         fileContents[filePath] = await execPromise(`cat ${filePaths[filePath]} | head -c 1000`);
       })
-      );
-      return fileContents;
-    } catch (error: any) {
-      console.log(error);
-      return { result: '', error: error, stdout: '' };
-    }
-  };
-  
-  //get file content in hex format with xxd
-  export const getFilesContentHex = async (filePaths: any) => {
+    );
+    return fileContents;
+  } catch (error: any) {
+    console.log(error);
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+//get file content in hex format with xxd
+export const getFilesContentHex = async (filePaths: any) => {
   try {
     let fileContents: any = {};
     const fileContentsHandler = await Promise.all(
@@ -398,7 +407,7 @@ export const encryptRSA = async (filePaths: any, publicKeyPath: any) => {
     console.log(
       `Encrypt file: openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`
     );
-    
+
     await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedKeyPath}`)
       .then((res) => {
         console.log('Encrypt file:Done');
@@ -447,7 +456,7 @@ export const decryptRSA = async (filePaths: any, privateKeyPath: any) => {
         console.log(err);
         error = err;
       });
-    return { decryptedKeyPath , result, error, stdout };
+    return { decryptedKeyPath, result, error, stdout };
   } catch (error: any) {
     return { result: '', error: error, stdout: '' };
   }
@@ -589,5 +598,377 @@ export const hashSHA256 = async (filePaths: any) => {
     return { sha256: result, error, stdout };
   } catch (error: any) {
     return { sha256: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * copy a file a number of times
+ * @param  {any} filePaths
+ * @param  {any} numberOfCopies
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const copyFile = async (filePaths: any, numberOfCopies: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    //split the file path to get the file name and extension
+    const fileName = filePaths.split('.')[0];
+    //generate a array of number from 1 to numberOfCopies
+    const fileNameToCopy = Array.from(Array(numberOfCopies).keys()).map((i) => `${fileName}_${i + 1}`);
+
+    // promise all to copy the file
+    const a = `i=1; while [ "$i" -le ${numberOfCopies} ]; do cp ${filePaths} ${fileName}_"$i";  i=$((i+1));  done`;
+    await execPromise(a)
+      .then((res) => {
+        // console.log('Copy file:Done');
+        console.log(res);
+      })
+      .catch((err) => {
+        console.log('Copy file:Failed');
+        console.log(err);
+      });
+
+    return { fileNames: fileNameToCopy, error, stdout };
+  } catch (error: any) {
+    console.log(error);
+    return { fileNames: [], error: error, stdout: '' };
+  }
+};
+
+/**
+ * remove a number of files
+ * @param  {any} filePaths array of file paths
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const removeFiles = async (filePaths: any, folderPath?: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    //
+    if (folderPath) {
+      await execPromise(`find ${folderPath} -type f ! -name 'input.png' ! -name '.gitignore' -delete
+      `)
+        .then((res) => {
+          // console.log('Copy file:Done');
+          console.log(res);
+        })
+        .catch((err) => {
+          console.log('Copy file:Failed');
+          console.log(err);
+        });
+    } else {
+      // promise all to remove the file
+      await Promise.all(
+        filePaths.map((filePath: any) => {
+          // console.log(`Remove file: rm ${filePath}`);
+          return execPromise(`rm ${filePath}`);
+        })
+      );
+    }
+    return { result, error, stdout };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * encrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} publicKeyPath
+ */
+export const encryptRSATest = async (filePaths: any, publicKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedFilePath = `${fileName}-encrypted.${fileExtension || ''}`;
+
+
+    // await execPromise(`openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath}`)
+    await execPromise(` date +%s%3N && openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${filePaths} -out ${encryptedFilePath} && date +%s%3N`)
+      .then((res) => {
+        // console.log('Encrypt file:RSA', res);
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const encryptTime = parseInt(stop) - parseInt(start);
+
+    return { encryptedFilePath, result, error, stdout, encryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+/**
+ * decrypt file with RSA
+ * @param  {any} filePaths
+ * @param  {any} privateKeyPath
+ * @returns {Promise<string>} decrypted file path
+ * @returns {Promise<string>} error message if any
+ * @returns {Promise<string>} stdout if any
+ */
+export const decryptRSATest = async (filePaths: any, privateKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedFilePath = `${fileName}-decrypted.${fileExtension || ''}`;
+
+    //timer start using unix time util
+
+    // console.log(
+    //   `Decrypt file: openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedKeyPath}`
+    // );
+    await execPromise(` date +%s%3N && openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${filePaths} -out ${decryptedFilePath} && date +%s%3N`)
+      .then((res) => {
+        // console.log('Decrypt file:Done');
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const decryptTime = parseInt(stop) - parseInt(start);
+
+    return { decryptedFilePath, result, error, stdout, decryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+// ecrypt file with blowfish then encrypt the blowfish key with RSA
+export const encryptHybridTest = async (filePaths: any, publicKeyPath: any, blowfishKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let startKey;
+    let stopKey;
+    let startFile;
+    let stopFile;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedFilePath = `${fileName}-encrypted.${fileExtension || ''}`;
+    const encryptedBlowfishKeyPath = `${fileName}-encrypted-blowfish-key.${fileExtension || ''}`;
+
+    // ecrypt file with blowfish
+
+    await execPromise(
+      `date +%s%3N && openssl enc -bf-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${blowfishKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [startFile, stopFile] = res.split('\n');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    await execPromise(
+      ` date +%s%3N && openssl pkeyutl -encrypt -pubin -inkey ${publicKeyPath} -in ${blowfishKeyPath} -out ${encryptedBlowfishKeyPath} && date +%s%3N`
+    )
+      .then((res) => {
+        // split the stdout to get the start and stop time split by new line
+        [startKey, stopKey] = res.split('\n');
+
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt key:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const encryptFileTime = parseInt(stopFile) - parseInt(startFile);
+    //@ts-ignore
+    const encryptKeyTime = parseInt(stopKey) - parseInt(startKey);
+
+    const encryptTime = encryptFileTime + encryptKeyTime;
+
+    const output = {
+      encryptedFilePath,
+      encryptedBlowfishKeyPath,
+      result,
+      error,
+      stdout,
+      encryptTime,
+      encryptFileTime,
+      encryptKeyTime,
+    };
+    return output;
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+// decrypt the blowfish key with RSA then decrypt the file with blowfish
+export const decryptHybridTest = async (filePaths: any, privateKeyPath: any, blowfishKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let startKey;
+    let stopKey;
+    let startFile;
+    let stopFile;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedFilePath = `${fileName}-decrypted.${fileExtension || ''}`;
+    const decryptedBlowfishKeyPath = `${fileName}-decrypted-blowfish-key.${fileExtension || ''}`;
+
+    await execPromise(
+      `date +%s%3N && openssl pkeyutl -decrypt -inkey ${privateKeyPath} -in ${blowfishKeyPath} -out ${decryptedBlowfishKeyPath} && date +%s%3N`
+    )
+      .then((res) => {
+        [startKey, stopKey] = res.split('\n');
+
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    // decrypt file with blowfish
+
+    await execPromise(
+      `date +%s%3N && openssl enc -bf-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${decryptedBlowfishKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [startFile, stopFile] = res.split('\n');
+
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const decryptFileTime = parseInt(stopFile) - parseInt(startFile);
+    //@ts-ignore
+    const decryptKeyTime = parseInt(stopKey) - parseInt(startKey);
+
+    const decryptTime = decryptFileTime + decryptKeyTime;
+
+    const output = {
+      decryptedFilePath,
+      decryptedBlowfishKeyPath,
+      result,
+      error,
+      stdout,
+      decryptTime,
+      decryptFileTime,
+      decryptKeyTime,
+    };
+    return output;
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+
+// encrypt file with blowfish test
+export const encryptBlowfishTest = async (filePaths: any, blowfishKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedFilePath = `${fileName}-encrypted.${fileExtension || ''}`;
+
+
+    // console.log(
+    //   `Encrypt file: openssl enc -bf-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${blowfishKeyPath} -provider legacy -provider default`
+    // );
+    await execPromise(
+      `date +%s%3N && openssl enc -bf-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${blowfishKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const encryptTime = parseInt(stop) - parseInt(start);
+
+    return { encryptedFilePath, result, error, stdout, encryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+// decrypt file with blowfish test
+export const decryptBlowfishTest = async (filePaths: any, blowfishKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedFilePath = `${fileName}-decrypted.${fileExtension || ''}`;
+
+    // console.log(
+    //   `Decrypt file: openssl enc -bf-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${blowfishKeyPath} -provider legacy -provider default`
+    // );
+    await execPromise(
+      `date +%s%3N && openssl enc -bf-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${blowfishKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const decryptTime = parseInt(stop) - parseInt(start);
+
+    return { decryptedFilePath, result, error, stdout, decryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
   }
 };

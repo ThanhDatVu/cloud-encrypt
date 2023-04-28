@@ -53,6 +53,8 @@ COPY ./images ./images
 
 COPY ./signatures ./signatures
 
+COPY ./images_test ./images_test
+
 RUN yarn compile
 
 # production stage
