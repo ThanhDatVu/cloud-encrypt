@@ -26,6 +26,7 @@ RUN set -x \
     && tar -xvf /tmp/openssl-${OPENSSL_VERSION}.tar.gz -C /tmp/ \
     && rm -rf /tmp/openssl-${OPENSSL_VERSION}.tar.gz
 COPY bf_local.h /tmp/openssl-${OPENSSL_VERSION}/crypto/bf/bf_local.h
+COPY bf_enc.c /tmp/openssl-${OPENSSL_VERSION}/crypto/bf/bf_enc.c
 RUN cd /tmp/openssl-${OPENSSL_VERSION} \
     && ./Configure linux-x86_64 shared\
     && make \

@@ -972,3 +972,77 @@ export const decryptBlowfishTest = async (filePaths: any, blowfishKeyPath: any) 
     return { result: '', error: error, stdout: '' };
   }
 };
+
+//encrypt file with aes test
+export const encryptAESTest = async (filePaths: any, aesKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const encryptedFilePath = `${fileName}-encrypted.${fileExtension || ''}`;
+
+    // console.log(
+    //   `Encrypt file: openssl enc -aes-256-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default`
+    // );
+    await execPromise(
+      `date +%s%3N && openssl enc -aes-256-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Encrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Encrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const encryptTime = parseInt(stop) - parseInt(start);
+
+    return { encryptedFilePath, result, error, stdout, encryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};
+
+//decrypt file with aes test
+export const decryptAESTest = async (filePaths: any, aesKeyPath: any) => {
+  try {
+    let result = '';
+    let error = '';
+    let stdout = '';
+    let start;
+    let stop;
+    const [fileName, fileExtension] = filePaths.split('.');
+    const decryptedFilePath = `${fileName}-decrypted.${fileExtension || ''}`;
+
+    // console.log(
+    //   `Decrypt file: openssl enc -aes-256-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default`
+    // );
+    await execPromise(
+      `date +%s%3N && openssl enc -aes-256-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
+    )
+      .then((res) => {
+        [start, stop] = res.split('\n');
+        stdout = res;
+        result = 'Decrypt file:Done';
+      })
+      .catch((err) => {
+        console.log('Decrypt file:Failed');
+        console.log(err);
+        error = err;
+      });
+
+    //@ts-ignore
+    const decryptTime = parseInt(stop) - parseInt(start);
+
+    return { decryptedFilePath, result, error, stdout, decryptTime };
+  } catch (error: any) {
+    return { result: '', error: error, stdout: '' };
+  }
+};

@@ -10,6 +10,8 @@
 #ifndef OSSL_CRYPTO_BF_LOCAL_H
 # define OSSL_CRYPTO_BF_LOCAL_H
 # include <openssl/opensslconf.h>
+# include <pthread.h>
+# include <stdint.h>
 
 /* NOTE - c is not incremented as per n2l */
 # define n2ln(c,l1,l2,n) { \
@@ -80,12 +82,17 @@
 //                 S[0x0200+((R>> 8)&0xff)])+ \
 //                 S[0x0300+((R    )&0xff)])&0xffffffffU \
 //         )
-#define BF_ENC(LL, R, S, P) ( \
-        LL ^= P, \
-        LL ^= (((S[((R >> 24) & 0xff)] + S[0x0100 + ((R >> 16) & 0xff)]) \
-            * ((S[0x0200 + ((R >> 8) & 0xff)] + S[0x0300 + (R & 0xff)]) \
-            & 0xffffffffU)) \
-           & 0xffffffffU \
-        ))
+
+// new
+// #define BF_ENC(LL, R, S, P) ( \
+//         LL ^= P, \
+//         LL ^= (((S[((R >> 24) & 0xff)] + S[0x0100 + ((R >> 16) & 0xff)]) \
+//             * ((S[0x0200 + ((R >> 8) & 0xff)] + S[0x0300 + (R & 0xff)]) \
+//             & 0xffffffffU)) \
+//            & 0xffffffffU \
+//         ))
+
+
+
 
 #endif
