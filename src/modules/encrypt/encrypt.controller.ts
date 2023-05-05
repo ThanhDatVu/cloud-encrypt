@@ -632,8 +632,117 @@ export const encryptBlowfish50 = catchAsync(async (req: Request, res: Response) 
   });
 
   const startRemove = await unixTimer('start remove file');
-  
+
   // 4. remove the test files
+  const remove = await encryptService.removeFiles(
+    [
+      ...fileNames,
+      ...encryptResults.map((encryptResult: any) => encryptResult.encryptedFilePath),
+      ...decryptResults.map((decryptResult: any) => decryptResult.decryptedFilePath),
+      filePath,
+    ],
+    imagesFolderTest
+  );
+
+  const stopTime = await unixTimer('stop remove file');
+
+  // 5. Assert
+
+  const encryptTime = parseInt(endEncrypt) - parseInt(startEncrypt);
+  const decryptTime = parseInt(endDecrypt) - parseInt(startDecrypt);
+  //calculate throughput in MB/s with fileSize in bit and time in ms
+  const encryptThroughput = Math.round(((fileNumber * fileSize) / encryptTime / 1000) * 100) / 100;
+  const decryptThroughput = Math.round(((fileNumber * fileSize) / decryptTime / 1000) * 100) / 100;
+
+  console.table({
+    encryptThroughput,
+    decryptThroughput,
+  });
+
+  console.log('Encrypt Execution time: ' + encryptTime + 'ms');
+
+  console.log('Decrypt Execution time: ' + decryptTime + 'ms');
+
+  console.log('Copy Execution time: ' + (parseInt(endCopy) - parseInt(startCopy)) + 'ms');
+
+  console.log('Remove Execution time: ' + (parseInt(stopTime) - parseInt(startRemove)) + 'ms');
+
+  res.send({
+    message: 'success',
+    avgEncryptTime,
+    avgDecryptTime,
+    encryptTimes,
+    decryptTimes,
+    throughtput: {
+      encryptThroughput,
+      decryptThroughput,
+    },
+  });
+});
+
+//ecrypt 50 files using aes encryption
+export const encryptAes50 = catchAsync(async (req: Request, res: Response) => {
+  // 1. Arrange
+  // 1.1. generate aes key match "keySize"
+  const { aesKeySize } = req.body || 128;
+  const generatedAesKey = await keyManagementService.generateAesKey(aesKeySize);
+  const aesKeyPath = generatedAesKey.keyPath;
+
+  const fileSize = req.body.fileSize > 80000000 ? 80000000 : req.body.fileSize || 80000000;
+  const fileNumber = req.body.fileNumber > 100 ? 100 : req.body.fileNumber || 50;
+  console.log('fileSize', fileSize);
+
+  const startCopy = await unixTimer('start copy file');
+  // 1.2. generate a file with "fileSize" and copy it to "fileNumber" files
+  const uniqueId = v4();
+  const filePath = `${imagesFolderTest}input-${fileSize}bit-${uniqueId}`;
+  const generateFile = await execPromise(`fallocate -l ${fileSize / 8} ${filePath}`);
+  const fileSizeCheck = await execPromise(`du -sh ${filePath}`).then((result) => {
+    console.log('file size', result);
+    return result;
+  });
+  const { fileNames } = await encryptService.copyFile(filePath, fileNumber);
+  const endCopy = await unixTimer('stop copy file');
+
+  // 2. encrypt the test files
+  const startEncrypt = await unixTimer('start encrypt file');
+
+  const encryptPromises = fileNames.map(async (fileName: any) => {
+    const encryptAes = await encryptService.encryptAesTest(fileName, `${aesKeyPath}`);
+    return encryptAes;
+  });
+
+  const encryptResults = await Promise.all(encryptPromises);
+  const endEncrypt = await unixTimer('stop encrypt file');
+
+  const encryptTimes = encryptResults.map((encryptResult: any) => encryptResult.encryptTime);
+  const avgEncryptTime = encryptTimes.reduce((a: any, b: any) => a + b, 0) / encryptResults.length;
+
+  console.log('encrypt times', encryptTimes);
+
+  // 3. decrypt the test files
+
+  const startDecrypt = await unixTimer('start decrypt file');
+
+  const decryptPromises = encryptResults.map(async (encryptResult: any) => {
+    const decryptAes = await encryptService.decryptAesTest(encryptResult.encryptedFilePath, `${aesKeyPath}`);
+    return decryptAes;
+  });
+
+  const decryptResults = await Promise.all(decryptPromises);
+
+  const endDecrypt = await unixTimer('stop decrypt file');
+
+  const decryptTimes = decryptResults.map((decryptResult: any) => decryptResult.decryptTime);
+
+  const avgDecryptTime = decryptTimes.reduce((a: any, b: any) => a + b, 0) / decryptResults.length;
+
+  console.log('decryptResults', decryptTimes);
+
+  const startRemove = await unixTimer('start remove file');
+
+  // 4. remove the test files
+
   const remove = await encryptService.removeFiles(
     [
       ...fileNames,

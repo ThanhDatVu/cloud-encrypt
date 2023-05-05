@@ -107,3 +107,28 @@ export const generateRSAKeyPair = async (keySize: number) => {
     publicKeyPath,
   };
 };
+
+/**
+ * Generate a new Blowfish key and save it to a file
+ * @param {String} fileName: name of the file to save the key
+ * @param {number} keySize: size of the key in bits
+ * @returns {Promise<string>}
+ */
+export const generateAesKey = async (keySize?: number) => {
+  let result = '';
+  const DEFAULT_KEY_SIZE = 256;
+  const symKeyFolder = process.env['SYM_KEY_FOLDER'];
+  const keyPath = `${symKeyFolder}aes${keySize || ''}.key`;
+  // implement emeral ecdh to generate a new Blowfish key
+
+  await execPromise(`openssl rand -base64 ${(keySize || DEFAULT_KEY_SIZE) / 8} > ${keyPath}`)
+    .then((stdout) => {
+      console.log(`stdout: ${stdout}`);
+      result = stdout;
+    })
+    .catch((error) => {
+      console.log(`error: ${error.message}`);
+      result = error.message;
+    });
+  return { keyPath };
+};

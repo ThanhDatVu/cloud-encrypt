@@ -6,33 +6,27 @@ import { encryptController, encryptValidation } from '../../modules/encrypt';
 const router: Router = express.Router();
 
 router.route('/encrypt').post(
-  // auth('manageEncrypts'),
-  // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptRSA
 );
 
 router.route('/decrypt').post(
-  // auth('manageEncrypts'),
-  // validate(encryptValidation.encryptBlowfish),
   encryptController.decryptRSA
 );
 
 router.route('/encryptRSATest').post(
-  // auth('manageEncrypts'),
-  // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptRSA50
 );
 
 router.route('/encryptHybridTest').post(
-  // auth('manageEncrypts'),
-  // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptHybrid50
 );
 
 router.route('/encryptBlowfishTest').post(
-  // auth('manageEncrypts'),
-  // validate(encryptValidation.encryptBlowfish),
   encryptController.encryptBlowfish50
+);
+
+router.route('/encryptAesTest').post(
+  encryptController.encryptAes50
 );
 
 export default router;

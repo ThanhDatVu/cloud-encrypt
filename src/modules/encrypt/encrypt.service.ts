@@ -974,7 +974,7 @@ export const decryptBlowfishTest = async (filePaths: any, blowfishKeyPath: any) 
 };
 
 //encrypt file with aes test
-export const encryptAESTest = async (filePaths: any, aesKeyPath: any) => {
+export const encryptAesTest = async (filePaths: any, aesKeyPath: any) => {
   try {
     let result = '';
     let error = '';
@@ -988,7 +988,7 @@ export const encryptAESTest = async (filePaths: any, aesKeyPath: any) => {
     //   `Encrypt file: openssl enc -aes-256-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default`
     // );
     await execPromise(
-      `date +%s%3N && openssl enc -aes-256-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
+      `date +%s%3N && OPENSSL_ia32cap="~0x200000200000000" openssl enc -aes-256-cbc -in ${filePaths} -out ${encryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
     )
       .then((res) => {
         [start, stop] = res.split('\n');
@@ -1011,7 +1011,7 @@ export const encryptAESTest = async (filePaths: any, aesKeyPath: any) => {
 };
 
 //decrypt file with aes test
-export const decryptAESTest = async (filePaths: any, aesKeyPath: any) => {
+export const decryptAesTest = async (filePaths: any, aesKeyPath: any) => {
   try {
     let result = '';
     let error = '';
@@ -1025,7 +1025,7 @@ export const decryptAESTest = async (filePaths: any, aesKeyPath: any) => {
     //   `Decrypt file: openssl enc -aes-256-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default`
     // );
     await execPromise(
-      `date +%s%3N && openssl enc -aes-256-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
+      `date +%s%3N && OPENSSL_ia32cap="~0x200000200000000" openssl enc -aes-256-cbc -d -in ${filePaths} -out ${decryptedFilePath} -pass file:${aesKeyPath} -provider legacy -provider default && date +%s%3N`
     )
       .then((res) => {
         [start, stop] = res.split('\n');
