@@ -301,6 +301,7 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   const fileContents = await encryptService.getFilesContent({
     bobPrivateKeyContent: `${bobPrivateKey}`,
     alicePublicKeyContent: `${alicePublicKey}`,
+    encryptedFileContent: `${metadata.encryptedFilePath}`,
   });
 
   const fileContentsHex = await encryptService.getFilesContentHex({
