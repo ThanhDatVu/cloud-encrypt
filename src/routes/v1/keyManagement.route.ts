@@ -11,6 +11,8 @@ router.route('/generate-edcsa-key').post(keyManagementController.generateECDSAKe
 
 router.route('/generate-rsa-key').post(keyManagementController.generateRSAKey);
 
+router.route('/generate-alice-bob-key').post(keyManagementController.generateAliceBobKey);
+
 export default router;
 
 /**

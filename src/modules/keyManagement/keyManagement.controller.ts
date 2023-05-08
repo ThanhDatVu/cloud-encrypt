@@ -25,3 +25,8 @@ export const generateRSAKey = catchAsync(async (req: Request, res: Response) => 
   res.send(result);
 });
 
+export const generateAliceBobKey = catchAsync(async (req: Request, res: Response) => {
+  const { keySize } = req.body;
+  const result = await keyManagementService.generateAliceBobKey(keySize);
+  res.send(result);
+});

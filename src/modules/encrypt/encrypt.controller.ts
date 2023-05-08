@@ -25,6 +25,12 @@ const imagesFolderTest: string = process.env['IMAGES_FOLDER_TEST'] || 'images_te
 const systemPublicKey: string = `${asymKeyFolder}public-rsa.pem`;
 const systemPrivateKey: string = `${asymKeyFolder}private-rsa.pem`;
 
+const alicePublicKey: string = `${asymKeyFolder}alice-public-rsa.pem`;
+const alicePrivateKey: string = `${asymKeyFolder}alice-private-rsa.pem`;
+
+const bobPublicKey: string = `${asymKeyFolder}bob-public-rsa.pem`;
+const bobPrivateKey: string = `${asymKeyFolder}bob-private-rsa.pem`;
+
 const blowfishKey = `${symKeyFolder}blowfish.key`;
 // export const encrypt = catchAsync(async (req: Request, res: Response) => {
 //   const inputFile = req.body.inputFile || 'input.png';
@@ -183,13 +189,13 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   );
 
   // encrypt blowfish key with system public key
-  const { result, encryptedKeyPath } = await encryptService.encryptRSA(`${fileSymKeyPath}`, `${systemPublicKey}`);
+  const { result, encryptedKeyPath } = await encryptService.encryptRSA(`${fileSymKeyPath}`, `${bobPublicKey}`);
 
   // hash the original file
   const { sha256 } = await encryptService.hashSHA256(`${imagesFolder}${inputFile}`);
 
   // sign the hash with system private key
-  const { signResult, signaturePath } = await encryptService.signRSA(sha256, `${systemPrivateKey}`, fileID);
+  const { signResult, signaturePath } = await encryptService.signRSA(sha256, `${alicePrivateKey}`, fileID);
 
   const stopTime = await unixTimer('stop Encryption algorithm');
 
@@ -205,8 +211,8 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   });
 
   const fileContents = await encryptService.getFilesContent({
-    systemPrivateKeyContent: `${systemPrivateKey}`,
-    systemPublicKeyContent: `${systemPublicKey}`,
+    alicePrivateKeyContent: `${alicePrivateKey}`,
+    bobPublicKeyContent: `${bobPublicKey}`,
     encryptedFileContent: `${encryptedFilePath}`,
   });
 
@@ -273,7 +279,7 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   // decrypt blowfish key with system private key
   const { result, decryptedKeyPath } = await encryptService.decryptRSA(
     `${metadata.encryptedFileKey}`,
-    `${systemPrivateKey}`
+    `${bobPrivateKey}`
   );
 
   // decrypt file with blowfish algorithm
@@ -286,15 +292,15 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   // hash the decrypted file
   const { sha256 } = await encryptService.hashSHA256(decryptedFilePath);
   // verify the signature with system public key
-  const verifyRSA = await encryptService.verifyRSA(sha256, metadata.signaturePath, `${systemPublicKey}`);
+  const verifyRSA = await encryptService.verifyRSA(sha256, metadata.signaturePath, `${alicePublicKey}`);
 
   const stopTime = await unixTimer('stop Decryption algorithm');
 
   console.log('Execution time: ' + (parseInt(stopTime) - parseInt(startTime)) + 'ms');
 
   const fileContents = await encryptService.getFilesContent({
-    systemPrivateKeyContent: `${systemPrivateKey}`,
-    systemPublicKeyContent: `${systemPublicKey}`,
+    bobPrivateKeyContent: `${bobPrivateKey}`,
+    alicePublicKeyContent: `${alicePublicKey}`,
   });
 
   const fileContentsHex = await encryptService.getFilesContentHex({
@@ -321,6 +327,7 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
 
 // set up test to encrypt 50 files using only encryptRSA function
 export const encryptRSA50 = catchAsync(async (req: Request, res: Response) => {

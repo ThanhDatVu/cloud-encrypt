@@ -132,3 +132,66 @@ export const generateAesKey = async (keySize?: number) => {
     });
   return { keyPath };
 };
+
+/**
+ * Generate 2 new RSA key pairs and save them to 4 files for Alice and Bob
+ * @returns {Promise<string>}
+ * @param keySize
+ */
+export const generateAliceBobKey = async (keySize: number) => {
+  let result = '';
+  const DEFAULT_KEY_SIZE = 2048;
+  const asymKeyFolder = process.env['ASYM_KEY_FOLDER'];
+  const alicePrivateKeyPath = `${asymKeyFolder}alice-private-rsa.pem`;
+  const alicePublicKeyPath = `${asymKeyFolder}alice-public-rsa.pem`;
+  const bobPrivateKeyPath = `${asymKeyFolder}bob-private-rsa.pem`;
+  const bobPublicKeyPath = `${asymKeyFolder}bob-public-rsa.pem`;
+  console.log(`Generating RSA key pair with size ${keySize || DEFAULT_KEY_SIZE}...`);
+  console.log(`Command: openssl genrsa -out ${alicePrivateKeyPath} ${keySize || DEFAULT_KEY_SIZE}`);
+  await execPromise(`openssl genrsa -out ${alicePrivateKeyPath} ${keySize || DEFAULT_KEY_SIZE}`)
+    .then((stdout) => {
+      console.log(`stdout: ${stdout}`);
+      result = stdout;
+    })
+    .catch((error) => {
+      console.log(`error: ${error.message}`);
+      result = error.message;
+    });
+  console.log(`Command: openssl rsa -in ${alicePrivateKeyPath} -pubout -out ${alicePublicKeyPath}`);
+  await execPromise(`openssl rsa -in ${alicePrivateKeyPath} -pubout -out ${alicePublicKeyPath}`)
+    .then((stdout) => {
+      console.log(`stdout: ${stdout}`);
+      result = stdout;
+    })
+    .catch((error) => {
+      console.log(`error: ${error.message}`);
+      result = error.message;
+    });
+  console.log(`Command: openssl genrsa -out ${bobPrivateKeyPath} ${keySize || DEFAULT_KEY_SIZE}`);
+  await execPromise(`openssl genrsa -out ${bobPrivateKeyPath} ${keySize || DEFAULT_KEY_SIZE}`)
+    .then((stdout) => {
+      console.log(`stdout: ${stdout}`);
+      result = stdout;
+    })
+    .catch((error) => {
+      console.log(`error: ${error.message}`);
+      result = error.message;
+    });
+  console.log(`Command: openssl rsa -in ${bobPrivateKeyPath} -pubout -out ${bobPublicKeyPath}`);
+  await execPromise(`openssl rsa -in ${bobPrivateKeyPath} -pubout -out ${bobPublicKeyPath}`)
+    .then((stdout) => {
+      console.log(`stdout: ${stdout}`);
+      result = stdout;
+    })
+    .catch((error) => {
+      console.log(`error: ${error.message}`);
+      result = error.message;
+    });
+
+  return {
+    alicePrivateKeyPath,
+    alicePublicKeyPath,
+    bobPrivateKeyPath,
+    bobPublicKeyPath,
+  };
+};
