@@ -197,10 +197,13 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   // sign the hash with system private key
   const { signResult, signaturePath } = await encryptService.signRSA(sha256, `${alicePrivateKey}`, fileID);
 
-  const stopTime = await unixTimer('stop Encryption algorithm');
+  const stopEncypt = await unixTimer('stop Encryption algorithm');
 
-  console.log('Execution time: ' + (parseInt(stopTime) - parseInt(startTime)) + 'ms');
-
+  // upload the encrypted file to spaces and delete it from the server
+  const uploadFileToSpace = await uploadFile(pathToEncryptedFile);
+  
+  
+  
   const metadata = await metadataService.createMetadata({
     fileName: inputFile,
     fileUuid: fileID,
@@ -209,7 +212,13 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
     encryptedFileKey: `${encryptedKeyPath}`,
     encryptedFilePath,
   });
+  
+  const stopTime = await unixTimer('stop Encryption algorithm');
 
+  const executionTime = parseInt(stopTime) - parseInt(startTime);
+
+  const executionTimeEncrypt = parseInt(stopEncypt) - parseInt(startTime);
+  
   const fileContents = await encryptService.getFilesContent({
     alicePrivateKeyContent: `${alicePrivateKey}`,
     bobPublicKeyContent: `${bobPublicKey}`,
@@ -222,13 +231,6 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
     encryptedFilePrivateKeyContent: `${encryptedKeyPath}`,
   });
 
-  // upload the encrypted file to spaces and delete it from the server
-  const uploadFileToSpace = await uploadFile(pathToEncryptedFile);
-
-  const hash = await execPromise(`openssl dgst -sha256 ${pathToEncryptedFile}`).then((result) => {
-    console.log('hash', result);
-    return result;
-  });
   const deleteFileFromServer = await execPromise(`rm ${pathToEncryptedFile}`);
 
   res.send({
@@ -252,6 +254,10 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
       ...fileContents,
       ...fileContentsHex,
     },
+    timeMeasurement: {
+      executionTime,
+      executionTimeEncrypt,
+    },
   });
 });
 
@@ -262,19 +268,21 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'metadataId is required');
   }
 
+  const startTime = await unixTimer('start Decryption algorithm');
+
   const metadata = await metadataService.getMetadataById(new mongoose.Types.ObjectId(metadataId.toString()));
 
   if (!metadata) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Metadata not found');
   }
 
+  
   const decryptedFilePath = `${imagesFolder}${metadata.fileName}-decrypted.${metadata.fileName.split('.')[1]}`;
-  console.log('decryptedFilePath', decryptedFilePath);
-
+  
   // download the encrypted file from spaces and save it to the server
   const downloadFileFromSpace = await downloadFile(metadata.encryptedFilePath);
-
-  const startTime = await unixTimer('start Decryption algorithm');
+  
+  const startDecryptTime = await unixTimer('start Decryption algorithm (decrypt + hash + verify only)');
 
   // decrypt blowfish key with system private key
   const { result, decryptedKeyPath } = await encryptService.decryptRSA(
@@ -291,12 +299,16 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
 
   // hash the decrypted file
   const { sha256 } = await encryptService.hashSHA256(decryptedFilePath);
+
   // verify the signature with system public key
   const verifyRSA = await encryptService.verifyRSA(sha256, metadata.signaturePath, `${alicePublicKey}`);
 
   const stopTime = await unixTimer('stop Decryption algorithm');
 
-  console.log('Execution time: ' + (parseInt(stopTime) - parseInt(startTime)) + 'ms');
+  const executionTime = parseInt(stopTime) - parseInt(startTime);
+  const executionTimeDecrypt = parseInt(stopTime) - parseInt(startDecryptTime);
+
+  console.log('Execution time: ' + executionTime);
 
   const fileContents = await encryptService.getFilesContent({
     bobPrivateKeyContent: `${bobPrivateKey}`,
@@ -325,6 +337,10 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
     fileContents: {
       ...fileContents,
       ...fileContentsHex,
+    },
+    timeMeasurement: {
+      executionTime,
+      executionTimeDecrypt,
     },
   });
 });
