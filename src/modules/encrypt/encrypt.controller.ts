@@ -207,7 +207,7 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   const metadata = await metadataService.createMetadata({
     fileName: inputFile,
     fileUuid: fileID,
-    hashValue: sha256,
+    // hashValue: sha256,
     signaturePath,
     encryptedFileKey: `${encryptedKeyPath}`,
     encryptedFilePath,
@@ -329,7 +329,7 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
     },
     hash: {
       decryptedFilehash: sha256,
-      originalHash: metadata.hashValue,
+      // originalHash: metadata.hashValue,
       isHashEqual: sha256 == metadata.hashValue,
     },
     verifyRSA,

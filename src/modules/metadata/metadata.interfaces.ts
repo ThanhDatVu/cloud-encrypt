@@ -6,7 +6,7 @@ import { AccessAndRefreshTokens } from '../token/token.interfaces';
 export interface IMetadata {
   fileName: string;
   fileUuid: string;
-  hashValue: string;
+  hashValue?: string;
   signaturePath: string;
   encryptedFileKey: string;
   encryptedFilePath: string;

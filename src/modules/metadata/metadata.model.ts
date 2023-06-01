@@ -20,7 +20,7 @@ const metadataSchema = new mongoose.Schema<IMetadataDoc, IMetadataModel>(
     },
     hashValue: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     signaturePath: {
