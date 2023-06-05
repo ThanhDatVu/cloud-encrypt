@@ -27,4 +27,6 @@ jobs:
           password: ${{ secrets.PASSWORD}}
           script: |
             cd /home/dat/app/cloud-encrypt
-            sh cicd.sh
+            git pull
+            yarn docker:dev:down
+            yarn docker:prod
