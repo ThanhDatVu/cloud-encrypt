@@ -201,6 +201,8 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
 
   // upload the encrypted file to spaces and delete it from the server
   const uploadFileToSpace = await uploadFile(pathToEncryptedFile);
+
+  const uploadSigntureToSpace = await uploadFile(signaturePath);
   
   
   
@@ -232,6 +234,8 @@ export const encryptRSA = catchAsync(async (req: Request, res: Response) => {
   });
 
   const deleteFileFromServer = await execPromise(`rm ${pathToEncryptedFile}`);
+
+  const deleteSignatureFromServer = await execPromise(`rm ${signaturePath}`);
 
   res.send({
     metadata,
@@ -281,6 +285,8 @@ export const decryptRSA = catchAsync(async (req: Request, res: Response) => {
   
   // download the encrypted file from spaces and save it to the server
   const downloadFileFromSpace = await downloadFile(metadata.encryptedFilePath);
+  //download the signature file from spaces and save it to the server
+  const downloadSignatureFromSpace = await downloadFile(metadata.signaturePath);
   
   const startDecryptTime = await unixTimer('start Decryption algorithm (decrypt + hash + verify only)');
 

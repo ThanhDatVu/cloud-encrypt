@@ -57,6 +57,7 @@ export const downloadFile = async (fileName: any) => {
   const command = new GetObjectCommand(params);
   const response = await s3Client.send(command);
   const data = await streamToString(response.Body);
+  console.log('download', data)
   //@ts-ignore
   fs.writeFileSync(path.join(__dirname, fileName), data);
   return data;
